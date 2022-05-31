@@ -1,0 +1,390 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 10 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45913</md:content-id>
+  <md:title>Machine Learning Lecture 10 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>da9c3151-92da-47c2-a5ec-3f7401d96941</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>Principal components analysis</title>
+      <para id="id243020">In our discussion of factor analysis, we gave a way to model data <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> as
+“approximately” lying in some <m:math overflow="scroll"><m:mi>k</m:mi></m:math>-dimension subspace, where <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>≪</m:mo><m:mi>n</m:mi></m:mrow></m:math>.
+Specifically, we imagined that each point <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> was created by first generating
+some <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> lying in the <m:math overflow="scroll"><m:mi>k</m:mi></m:math>-dimension affine space <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mi>Λ</m:mi><m:mi>z</m:mi><m:mo>+</m:mo><m:mi>μ</m:mi><m:mo>;</m:mo><m:mi>z</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>k</m:mi></m:msup><m:mo>}</m:mo></m:mrow></m:math>,
+and then adding <m:math overflow="scroll"><m:mi>Ψ</m:mi></m:math>-covariance noise.
+Factor analysis is based on a probabilistic model, and parameter estimation
+used the iterative EM algorithm.</para>
+      <para id="id243158">In this set of notes, we will develop a method, Principal Components Analysis (PCA),
+that also tries to identify the subspace in which the data approximately lies.
+However, PCA will do so more directly, and will require only an eigenvector
+calculation (easily done with the <code display="inline">eig</code> function
+in Matlab), and does not need to resort to EM.</para>
+      <para id="id243169">Suppose we are given a dataset <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi><m:mo>}</m:mo></m:mrow></m:math> of attributes of <m:math overflow="scroll"><m:mi>m</m:mi></m:math>
+different types of automobiles, such as their maximum speed, turn radius, and so on.
+Let <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> for each <m:math overflow="scroll"><m:mi>i</m:mi></m:math> (<m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>≪</m:mo><m:mi>m</m:mi></m:mrow></m:math>).
+But unknown to us, two different attributes—some <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math>
+and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>j</m:mi></m:msub></m:math>—respectively give a car's maximum speed measured in miles per hour, and
+the maximum speed measured in kilometers per hour.
+These two attributes are therefore almost linearly dependent, up to only small differences
+introduced by rounding off to the nearest mph or kph. Thus, the data really lies approximately
+on an <m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:math> dimensional subspace. How can we automatically detect, and perhaps remove,
+this redundancy?</para>
+      <para id="id243323">For a less contrived example, consider a dataset resulting from a survey of
+pilots for radio-controlled helicopters,
+where <m:math overflow="scroll"><m:msubsup><m:mi>x</m:mi><m:mn>1</m:mn><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> is a measure of the piloting skill of pilot <m:math overflow="scroll"><m:mi>i</m:mi></m:math>, and <m:math overflow="scroll"><m:msubsup><m:mi>x</m:mi><m:mn>2</m:mn><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> captures
+how much he/she enjoys flying. Because RC helicopters are very difficult to fly,
+only the most committed students, ones that truly enjoy flying, become good pilots. So, the
+two attributes <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:math> are strongly
+correlated. Indeed, we might posit that that the data actually likes along some diagonal
+axis (the <m:math overflow="scroll"><m:msub><m:mi>u</m:mi><m:mn>1</m:mn></m:msub></m:math> direction) capturing the intrinsic piloting “karma” of a person, with only a small amount
+of noise lying off this axis. (See figure.) How can we automatically compute this <m:math overflow="scroll"><m:msub><m:mi>u</m:mi><m:mn>1</m:mn></m:msub></m:math> direction?</para>
+      <figure id="uid1"><media id="uid1_media" alt="skill vs enjoyment: positive correlation">
+          <image mime-type="image/png" src="../../media/heliPilot.png" id="uid1_onlineimage" width="348"><!-- NOTE: attribute width changes image size online (pixels). original width is 348. --></image>
+          <image mime-type="application/postscript" for="pdf" src="../../media/heliPilot.eps" id="uid1_printimage"/>
+        </media>
+      </figure><para id="id243625">We will shortly develop the PCA algorithm. But prior to running PCA per se,
+typically we first pre-process
+the data to normalize its mean and variance, as follows:</para>
+      <list id="id243630" display="block" list-type="enumerated">
+        <item id="uid2">Let <m:math overflow="scroll"><m:mrow><m:mi>μ</m:mi><m:mo>=</m:mo><m:mfrac><m:mn>1</m:mn><m:mi>m</m:mi></m:mfrac><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>.
+</item>
+        <item id="uid3">Replace each <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> with <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>-</m:mo><m:mi>μ</m:mi></m:mrow></m:math>.
+</item>
+        <item id="uid4">Let <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>σ</m:mi><m:mi>j</m:mi><m:mn>2</m:mn></m:msubsup><m:mo>=</m:mo><m:mfrac><m:mn>1</m:mn><m:mi>m</m:mi></m:mfrac><m:msub><m:mo>∑</m:mo><m:mi>i</m:mi></m:msub><m:msup><m:mrow><m:mo>(</m:mo><m:msubsup><m:mi>x</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>)</m:mo></m:mrow><m:mn>2</m:mn></m:msup></m:mrow></m:math></item>
+        <item id="uid5">Replace each <m:math overflow="scroll"><m:msubsup><m:mi>x</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> with <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>x</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>/</m:mo><m:msub><m:mi>σ</m:mi><m:mi>j</m:mi></m:msub></m:mrow></m:math>.
+</item>
+      </list>
+      <para id="id243883">Steps (1-2) zero out the mean of the data, and may be omitted for data known
+to have zero mean (for instance, time series corresponding to speech or other acoustic signals).
+Steps (3-4)
+rescale each coordinate to have unit variance, which ensures that different attributes
+are all treated on the same “scale.” For instance, if <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> was cars' maximum speed
+in mph (taking values in the high tens or low hundreds) and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:math> were the number of seats
+(taking values around 2-4), then this renormalization rescales the different attributes to make them
+more comparable. Steps (3-4) may be omitted if we had apriori knowledge that the different
+attributes are all on the same scale. One example of this is if each data point represented a
+grayscale image, and each <m:math overflow="scroll"><m:msubsup><m:mi>x</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> took a value in <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mn>255</m:mn><m:mo>}</m:mo></m:mrow></m:math> corresponding to the
+intensity value of pixel <m:math overflow="scroll"><m:mi>j</m:mi></m:math> in image <m:math overflow="scroll"><m:mi>i</m:mi></m:math>.</para>
+      <para id="id243986">Now, having carried out the normalization, how do we compute the “major axis of variation” <m:math overflow="scroll"><m:mi>u</m:mi></m:math>—that
+is, the direction on which the data approximately lies?
+One way to pose this problem is as finding the unit vector <m:math overflow="scroll"><m:mi>u</m:mi></m:math> so that
+when the data is projected onto the direction corresponding to <m:math overflow="scroll"><m:mi>u</m:mi></m:math>, the variance of the
+projected data is maximized. Intuitively, the data starts off with some amount of variance/information
+in it. We would like to choose a direction <m:math overflow="scroll"><m:mi>u</m:mi></m:math> so that if we were to approximate the data
+as lying in the direction/subspace corresponding to <m:math overflow="scroll"><m:mi>u</m:mi></m:math>, as much as possible of this variance
+is still retained.</para>
+      <figure id="uid6"><media id="uid6_media" alt="initial points. Three in the upper right quadrant, two in the lower left">
+          <image mime-type="image/png" src="../../media/rawdata.png" id="uid6_onlineimage" width="362"><!-- NOTE: attribute width changes image size online (pixels). original width is 362. --></image>
+          <image mime-type="application/postscript" for="pdf" src="../../media/rawdata.eps" id="uid6_printimage"/>
+        </media>
+      </figure><para id="id244044">Now, suppose we pick <m:math overflow="scroll"><m:mi>u</m:mi></m:math> to correspond the the direction shown in the figure
+below. The circles denote the projections of the original data onto this line.</para>
+      <figure id="uid7"><media id="uid7_media" alt="line U is drawn as x=y to make the best fit line">
+          <image mime-type="image/png" src="../../media/proj1.png" id="uid7_onlineimage" width="362"><!-- NOTE: attribute width changes image size online (pixels). original width is 362. --></image>
+          <image mime-type="application/postscript" for="pdf" src="../../media/proj1.eps" id="uid7_printimage"/>
+        </media>
+      </figure><para id="id244064">We see that the projected data still has a fairly large variance, and the
+points tend to be far from zero. In contrast,
+suppose had instead picked the following direction:</para>
+      <figure id="uid8"><media id="uid8_media" alt="line is drawn such that x=-y. The variance is much greater">
+          <image mime-type="image/png" src="../../media/proj2.png" id="uid8_onlineimage" width="362"><!-- NOTE: attribute width changes image size online (pixels). original width is 362. --></image>
+          <image mime-type="application/postscript" for="pdf" src="../../media/proj2.eps" id="uid8_printimage"/>
+        </media>
+      </figure><para id="id244077">Here, the projections have a significantly smaller variance, and are much closer to the origin.</para>
+      <para id="id244081">We would like to automatically select the direction <m:math overflow="scroll"><m:mi>u</m:mi></m:math> corresponding to the first of the two
+figures shown above. To formalize this, note that given a unit vector <m:math overflow="scroll"><m:mi>u</m:mi></m:math> and a point <m:math overflow="scroll"><m:mi>x</m:mi></m:math>,
+the length of the projection of <m:math overflow="scroll"><m:mi>x</m:mi></m:math> onto <m:math overflow="scroll"><m:mi>u</m:mi></m:math> is given by <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mi>T</m:mi></m:msup><m:mi>u</m:mi></m:mrow></m:math>. I.e., if <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>
+is a point in our dataset (one of the crosses in the plot), then its projection onto <m:math overflow="scroll"><m:mi>u</m:mi></m:math>
+(the corresponding circle in the figure) is distance <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mi>T</m:mi></m:msup><m:mi>u</m:mi></m:mrow></m:math> from the origin. Hence, to
+maximize the variance of the projections, we would like to choose a unit-length <m:math overflow="scroll"><m:mi>u</m:mi></m:math> so
+as to maximize:</para>
+      <equation id="id244195">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mfrac>
+                    <m:mn>1</m:mn>
+                    <m:mi>m</m:mi>
+                  </m:mfrac>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mrow>
+                          <m:msup>
+                            <m:mi>x</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                        </m:mrow>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                      <m:mi>u</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mn>2</m:mn>
+                  </m:msup>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mfrac>
+                    <m:mn>1</m:mn>
+                    <m:mi>m</m:mi>
+                  </m:mfrac>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msup>
+                    <m:mi>u</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:msup>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mi>u</m:mi>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>u</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mfenced separators="" open="(" close=")">
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mi>m</m:mi>
+                    </m:mfrac>
+                    <m:munderover>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                  </m:mfenced>
+                  <m:mi>u</m:mi>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id244419">We easily recognize that the maximizing this subject to <m:math overflow="scroll"><m:mrow><m:msub><m:mrow><m:mo>|</m:mo><m:mo>|</m:mo><m:mi>u</m:mi><m:mo>|</m:mo><m:mo>|</m:mo></m:mrow><m:mn>2</m:mn></m:msub><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> gives the
+principal eigenvector of <m:math overflow="scroll"><m:mrow><m:mi>Σ</m:mi><m:mo>=</m:mo><m:mfrac><m:mn>1</m:mn><m:mi>m</m:mi></m:mfrac><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:msup><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow><m:mi>T</m:mi></m:msup></m:mrow></m:math>, which
+is just the empirical covariance matrix of the data (assuming it has zero mean).<footnote id="uid9">If you
+haven't seen this before, try using the method of Lagrange multipliers to maximize
+<m:math overflow="scroll"><m:mrow><m:msup><m:mi>u</m:mi><m:mi>T</m:mi></m:msup><m:mi>Σ</m:mi><m:mi>u</m:mi></m:mrow></m:math> subject to that <m:math overflow="scroll"><m:mrow><m:msup><m:mi>u</m:mi><m:mi>T</m:mi></m:msup><m:mi>u</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>. You should be able to show that <m:math overflow="scroll"><m:mrow><m:mi>Σ</m:mi><m:mi>u</m:mi><m:mo>=</m:mo><m:mi>λ</m:mi><m:mi>u</m:mi></m:mrow></m:math>,
+for some <m:math overflow="scroll"><m:mi>λ</m:mi></m:math>, which implies <m:math overflow="scroll"><m:mi>u</m:mi></m:math> is an eigenvector of <m:math overflow="scroll"><m:mi>Σ</m:mi></m:math>, with eigenvalue <m:math overflow="scroll"><m:mi>λ</m:mi></m:math>.</footnote></para>
+      <para id="id244617">To summarize, we have found that if we wish to find a 1-dimensional subspace with
+with to approximate the data,
+we should choose <m:math overflow="scroll"><m:mi>u</m:mi></m:math> to be the principal eigenvector of <m:math overflow="scroll"><m:mi>Σ</m:mi></m:math>.
+More generally,
+if we wish to project our data into a <m:math overflow="scroll"><m:mi>k</m:mi></m:math>-dimensional subspace (<m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>&lt;</m:mo><m:mi>n</m:mi></m:mrow></m:math>), we should choose
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>u</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>u</m:mi><m:mi>k</m:mi></m:msub></m:mrow></m:math> to be the top <m:math overflow="scroll"><m:mi>k</m:mi></m:math> eigenvectors of <m:math overflow="scroll"><m:mi>Σ</m:mi></m:math>. The <m:math overflow="scroll"><m:msub><m:mi>u</m:mi><m:mi>i</m:mi></m:msub></m:math>'s now
+form a new, orthogonal basis for the data.<footnote id="uid10">Because <m:math overflow="scroll"><m:mi>Σ</m:mi></m:math> is symmetric,
+the <m:math overflow="scroll"><m:msub><m:mi>u</m:mi><m:mi>i</m:mi></m:msub></m:math>'s will (or always can be chosen to be) orthogonal to each other.</footnote></para>
+      <para id="id244746">Then, to represent <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> in this basis, we need only compute the corresponding vector</para>
+      <equation id="id244768">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>y</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msup>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>u</m:mi>
+                        <m:mn>1</m:mn>
+                        <m:mi>T</m:mi>
+                      </m:msubsup>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>u</m:mi>
+                        <m:mn>2</m:mn>
+                        <m:mi>T</m:mi>
+                      </m:msubsup>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mo>⋮</m:mo>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>u</m:mi>
+                        <m:mi>k</m:mi>
+                        <m:mi>T</m:mi>
+                      </m:msubsup>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>∈</m:mo>
+            <m:msup>
+              <m:mrow>
+                <m:mi mathvariant="double-struck">R</m:mi>
+              </m:mrow>
+              <m:mi>k</m:mi>
+            </m:msup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id244899">Thus, whereas <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math>, the vector <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> now gives a lower, <m:math overflow="scroll"><m:mi>k</m:mi></m:math>-dimensional,
+approximation/representation for <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>. PCA is therefore also referred to as a
+<emphasis effect="bold">dimensionality reduction</emphasis> algorithm. The vectors <m:math overflow="scroll"><m:mrow><m:msub><m:mi>u</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>u</m:mi><m:mi>k</m:mi></m:msub></m:mrow></m:math> are called
+the first <m:math overflow="scroll"><m:mi>k</m:mi></m:math> <emphasis effect="bold">principal components</emphasis> of the data.</para><para id="id245035"><emphasis effect="bold">Remark.</emphasis> Although we have shown it formally only for the case of <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>, using
+well-known properties of eigenvectors it is straightforward to show that
+of all possible orthogonal bases <m:math overflow="scroll"><m:mrow><m:msub><m:mi>u</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>u</m:mi><m:mi>k</m:mi></m:msub></m:mrow></m:math>, the one that we have chosen
+maximizes <m:math overflow="scroll"><m:mrow><m:msub><m:mo>∑</m:mo><m:mi>i</m:mi></m:msub><m:mrow><m:mo>|</m:mo><m:mo>|</m:mo></m:mrow><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:msubsup><m:mrow><m:mo>|</m:mo><m:mo>|</m:mo></m:mrow><m:mn>2</m:mn><m:mn>2</m:mn></m:msubsup></m:mrow></m:math>. Thus, our choice of a basis preserves
+as much variability as possible in the original data.</para>
+      <para id="id245141">In problem set 4, you will see that PCA can also be derived by picking the basis
+that minimizes the approximation error arising from projecting the data onto the <m:math overflow="scroll"><m:mi>k</m:mi></m:math>-dimensional
+subspace spanned by them.</para>
+      <para id="id245157">PCA has many applications; we will close our discussion with a few examples. First,
+compression—representing <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s with lower dimension <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s—is an obvious application.
+If we reduce high dimensional data to <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>2</m:mn></m:mrow></m:math> or 3 dimensions, then we can also
+plot the <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s to visualize the data. For instance, if we were to reduce our automobiles data to
+2 dimensions, then we can plot it (one point in our plot would correspond to one car type, say) to see
+what cars are similar to each other and what groups of cars may cluster together.</para>
+      <para id="id245238">Another standard application is to preprocess a dataset to reduce its dimension before
+running a supervised learning learning algorithm with the <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s as inputs. Apart from
+computational benefits, reducing the data's dimension can also reduce the complexity of
+the hypothesis class considered and help avoid overfitting (e.g., linear classifiers
+over lower dimensional input spaces will have smaller VC dimension).</para>
+      <para id="id245264">Lastly, as in our RC pilot
+example, we can also view PCA as a noise reduction algorithm. In our example it estimates the
+intrinsic “piloting karma” from the noisy measures of piloting skill and enjoyment. In class, we also saw
+the application of this idea to face images, resulting in <emphasis effect="bold">eigenfaces</emphasis> method. Here,
+each point <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mn>100</m:mn><m:mo>×</m:mo><m:mn>100</m:mn></m:mrow></m:msup></m:mrow></m:math> was a 10000 dimensional vector, with each coordinate
+corresponding to a pixel intensity value in a 100x100 image
+of a face. Using PCA, we represent each image <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> with a much lower-dimensional <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>.
+In doing so, we hope that the principal components we found retain the interesting,
+systematic variations between faces that capture what a person really looks like, but not the
+“noise” in the images introduced by minor
+lighting variations, slightly different imaging conditions, and so on.
+We then measure distances between faces <m:math overflow="scroll"><m:mi>i</m:mi></m:math> and <m:math overflow="scroll"><m:mi>j</m:mi></m:math> by working in the reduced dimension,
+and computing <m:math overflow="scroll"><m:mrow><m:mrow><m:mo>|</m:mo><m:mo>|</m:mo></m:mrow><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>-</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>j</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:msub><m:mrow><m:mo>|</m:mo><m:mo>|</m:mo></m:mrow><m:mn>2</m:mn></m:msub></m:mrow></m:math>. This resulted in a surprisingly good face-matching
+and retrieval algorithm.</para>
+    </section>
+  </content>
+</document>

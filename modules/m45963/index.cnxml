@@ -1,0 +1,58 @@
+<document xmlns="http://cnx.rice.edu/cnxml">
+
+<title>Machine Learning Review Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45963</md:content-id>
+  <md:title>Machine Learning Review Notes</md:title>
+  <md:abstract/>
+  <md:uuid>3cec6f17-b26b-45b0-ae9c-1208b422f283</md:uuid>
+</metadata>
+
+<content>
+  <para id="eip-458">The following modules contains various review notes supporting this machine learning course. Please click the link to download and save the following files.</para><table id="eip-655" summary="Reference table of links for studying.">
+<tgroup cols="2"><tbody>
+  <row>
+    <entry>Linear Algebra Review and Reference</entry>
+    <entry><link url="cs229-linalg.pdf">cs229-linalg.pdf</link></entry>
+  </row>
+  <row>
+    <entry>Probability Theory Review</entry>
+    <entry><link url="cs229-prob.pdf">cs229-prob.pdf</link></entry>
+  </row>
+  <row>
+    <entry>Matlab Review </entry>
+    <entry><link url="logistic_grad_ascent.txt">cs229-prob.pdf</link>
+<link url="sigmoid.txt">sigmoid.txt</link>
+<link url="matlab_session.txt">matlab_session.txt</link></entry>
+  </row>
+  <row>
+    <entry>Convex Optimization Overview, Part I </entry>
+    <entry><link url="cs229-cvxopt.pdf">cs229-cvxopt.pdf</link></entry>
+  </row>
+  <row>
+    <entry>Convex Optimization Overview, Part II </entry>
+    <entry><link url="cs229-cvxopt2.pdf">cs229-cvxopt2.pdf</link></entry>
+  </row>
+  <row>
+    <entry>Hidden Markov Models </entry>
+    <entry><link url="cs229-hmm.pdf">cs229-hmm.pdf</link></entry>
+  </row>
+  <row>
+    <entry>Gaussian Processes </entry>
+    <entry><link url="cs229-gp.pdf">cs229-gp.pdf</link>
+<link url="compute_kernel_matrix.txt">compute_kernel_matrix.txt</link>
+<link url="gp_demo.txt">gp_demo.txt</link>
+<link url="sample_gp_prior.txt">sample_gp_prior.txt</link></entry>
+  </row>
+</tbody>
+
+
+
+
+
+
+
+</tgroup>
+</table></content>
+
+</document>

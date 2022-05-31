@@ -1,0 +1,629 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 11 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45920</md:content-id>
+  <md:title>Machine Learning Lecture 11 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>c34290f8-ca84-4d0e-9a56-23f8fadff48e</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>Independent Components Analysis</title>
+      <para id="id63138">Our next topic is Independent Components Analysis (ICA). Similar to PCA, this
+will find a new basis in which to represent our data. However, the goal is very
+different.</para>
+      <para id="id63142">As a motivating example, consider the “cocktail party problem.” Here, <m:math overflow="scroll"><m:mi>n</m:mi></m:math>
+speakers are speaking simultaneously at a party, and any microphone placed in the room
+records only an overlapping combination of the <m:math overflow="scroll"><m:mi>n</m:mi></m:math> speakers' voices. But let's say we have <m:math overflow="scroll"><m:mi>n</m:mi></m:math> different microphones
+placed in the room, and because each microphone is a different distance from each
+of the speakers, it records a different combination of the speakers' voices. Using
+these microphone recordings, can we separate out the original <m:math overflow="scroll"><m:mi>n</m:mi></m:math> speakers' speech
+signals?</para>
+      <para id="id63182">To formalize this problem, we imagine that there is some data <m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> that is generated via
+<m:math overflow="scroll"><m:mi>n</m:mi></m:math> independent sources. What we observe is</para>
+      <equation id="id63215">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>x</m:mi>
+            <m:mo>=</m:mo>
+            <m:mi>A</m:mi>
+            <m:mi>s</m:mi>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id63235">where <m:math overflow="scroll"><m:mi>A</m:mi></m:math> is an unknown square matrix called the <emphasis effect="bold">mixing matrix</emphasis>. Repeated observations
+gives us a dataset
+<m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi><m:mo>}</m:mo></m:mrow></m:math>, and our goal is to recover the sources <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> that had generated
+our data (<m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mi>A</m:mi><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>).</para>
+      <para id="id63351">In our cocktail party problem, <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> is an <m:math overflow="scroll"><m:mi>n</m:mi></m:math>-dimensional vector, and <m:math overflow="scroll"><m:msubsup><m:mi>s</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> is
+the sound that speaker <m:math overflow="scroll"><m:mi>j</m:mi></m:math> was uttering at time <m:math overflow="scroll"><m:mi>i</m:mi></m:math>. Also, <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> in an <m:math overflow="scroll"><m:mi>n</m:mi></m:math>-dimensional vector,
+and <m:math overflow="scroll"><m:msubsup><m:mi>x</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> is the acoustic reading recorded by microphone <m:math overflow="scroll"><m:mi>j</m:mi></m:math> at time <m:math overflow="scroll"><m:mi>i</m:mi></m:math>.</para>
+      <para id="id63482">Let <m:math overflow="scroll"><m:mrow><m:mi>W</m:mi><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:mrow></m:math> be the <emphasis effect="bold">unmixing matrix.</emphasis> Our goal is to find <m:math overflow="scroll"><m:mi>W</m:mi></m:math>, so that given
+our microphone recordings <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>,
+we can recover the sources by computing <m:math overflow="scroll"><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mi>W</m:mi><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>. For notational convenience, we also
+let <m:math overflow="scroll"><m:msubsup><m:mi>w</m:mi><m:mi>i</m:mi><m:mi>T</m:mi></m:msubsup></m:math> denote the <m:math overflow="scroll"><m:mi>i</m:mi></m:math>-th row of <m:math overflow="scroll"><m:mi>W</m:mi></m:math>, so that
+</para>
+      <equation id="id63838"><m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>W</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+<m:mtable>
+
+<m:mtr>
+<m:mtd><m:mo>—
+</m:mo>
+</m:mtd>
+<m:mtd>
+<m:msubsup>
+<m:mi>w</m:mi>
+<m:mn>1</m:mn>
+<m:mi>T</m:mi>
+</m:msubsup>
+</m:mtd>
+<m:mtd><m:mo>—
+</m:mo>
+</m:mtd>
+</m:mtr>
+
+<m:mtr>
+<m:mtd>
+</m:mtd>
+<m:mtd><m:mo>⋮</m:mo>
+</m:mtd>
+<m:mtd>
+</m:mtd>
+</m:mtr>
+
+<m:mtr>
+<m:mtd><m:mo>—
+</m:mo>
+</m:mtd>
+<m:mtd>
+<m:msubsup>
+<m:mi>w</m:mi>
+<m:mi>n</m:mi>
+<m:mi>T</m:mi>
+</m:msubsup>
+</m:mtd>
+<m:mtd><m:mo>—
+</m:mo>
+</m:mtd>
+</m:mtr>
+
+</m:mtable>
+</m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation><para id="id63860">Thus, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>w</m:mi><m:mi>i</m:mi></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math>, and the <m:math overflow="scroll"><m:mi>j</m:mi></m:math>-th source can be recovered by computing <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>s</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>=</m:mo><m:msubsup><m:mi>w</m:mi><m:mi>j</m:mi><m:mi>T</m:mi></m:msubsup><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>.</para>
+    </section>
+    <section id="cid2">
+      <title>ICA ambiguities</title>
+      <para id="id63958">To what degree can <m:math overflow="scroll"><m:mrow><m:mi>W</m:mi><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:mrow></m:math> be recovered? If we have no prior knowledge about the sources and
+the mixing matrix, it is not hard to see that there are some inherent ambiguities in <m:math overflow="scroll"><m:mi>A</m:mi></m:math> that
+are impossible to recover, given only the <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s.</para>
+      <para id="id64012">Specifically, let <m:math overflow="scroll"><m:mi>P</m:mi></m:math>
+be any <m:math overflow="scroll"><m:mi>n</m:mi></m:math>-by-<m:math overflow="scroll"><m:mi>n</m:mi></m:math> permutation matrix. This means that each row and each column of <m:math overflow="scroll"><m:mi>P</m:mi></m:math> has exactly one “1.”
+Here're some examples of permutation matrices:</para>
+      <equation id="id64048">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>P</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>;</m:mo>
+            <m:mspace width="1.em"/>
+            <m:mi>P</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>;</m:mo>
+            <m:mspace width="1.em"/>
+            <m:mi>P</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mn>0</m:mn>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mn>1</m:mn>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id64170">If <m:math overflow="scroll"><m:mi>z</m:mi></m:math> is a vector, then <m:math overflow="scroll"><m:mrow><m:mi>P</m:mi><m:mi>z</m:mi></m:mrow></m:math> is another vector that's contains a permuted version of <m:math overflow="scroll"><m:mi>z</m:mi></m:math>'s coordinates.
+Given only the <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s, there will be no way to distinguish between <m:math overflow="scroll"><m:mi>W</m:mi></m:math> and <m:math overflow="scroll"><m:mrow><m:mi>P</m:mi><m:mi>W</m:mi></m:mrow></m:math>. Specifically,
+the permutation of the original sources is ambiguous, which should be no surprise. Fortunately, this
+does not matter for most applications.</para>
+      <para id="id64242">Further, there is no way to recover the correct scaling of the <m:math overflow="scroll"><m:msub><m:mi>w</m:mi><m:mi>i</m:mi></m:msub></m:math>'s. For instance, if
+<m:math overflow="scroll"><m:mi>A</m:mi></m:math> were replaced with <m:math overflow="scroll"><m:mrow><m:mn>2</m:mn><m:mi>A</m:mi></m:mrow></m:math>, and every <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> were replaced with <m:math overflow="scroll"><m:mrow><m:mrow><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>5</m:mn><m:mo>)</m:mo></m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>, then our observed
+<m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mn>2</m:mn><m:mi>A</m:mi><m:mo>·</m:mo><m:mrow><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>5</m:mn><m:mo>)</m:mo></m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math> would still be the same. More broadly, if a single column of <m:math overflow="scroll"><m:mi>A</m:mi></m:math> were
+scaled by a factor of <m:math overflow="scroll"><m:mi>α</m:mi></m:math>, and the corresponding source were scaled by a factor of <m:math overflow="scroll"><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:mi>α</m:mi></m:mrow></m:math>, then there
+is again no way, given only the <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s to determine that this had happened. Thus, we cannot
+recover the “correct” scaling of the sources. However, for the applications that we are concerned
+with—including the cocktail party problem—this ambiguity also does not matter. Specifically,
+scaling a speaker's speech signal <m:math overflow="scroll"><m:msubsup><m:mi>s</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> by some positive factor <m:math overflow="scroll"><m:mi>α</m:mi></m:math> affects only
+the volume of that speaker's speech. Also, sign changes do not matter, and <m:math overflow="scroll"><m:msubsup><m:mi>s</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> and <m:math overflow="scroll"><m:mrow><m:mo>-</m:mo><m:msubsup><m:mi>s</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:mrow></m:math> sound
+identical when played on a speaker. Thus, if the <m:math overflow="scroll"><m:msub><m:mi>w</m:mi><m:mi>i</m:mi></m:msub></m:math> found by an algorithm is scaled by any
+non-zero real number, the corresponding recovered source <m:math overflow="scroll"><m:mrow><m:msub><m:mi>s</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:msubsup><m:mi>w</m:mi><m:mi>i</m:mi><m:mi>T</m:mi></m:msubsup><m:mi>x</m:mi></m:mrow></m:math> will be scaled by the
+same factor; but this usually does not matter. (These comments also apply to ICA for the brain/MEG
+data that we talked about in class.)</para>
+      <para id="id64557">Are these the only sources of ambiguity in ICA? It turns out that they are, so long as
+the sources <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>i</m:mi></m:msub></m:math> are <emphasis effect="italics">non-Gaussian</emphasis>. To see what the difficulty is with Gaussian data, consider
+an example in which <m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>=</m:mo><m:mn>2</m:mn></m:mrow></m:math>, and <m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mi>I</m:mi><m:mo>)</m:mo></m:mrow></m:math>. Here,
+<m:math overflow="scroll"><m:mi>I</m:mi></m:math> is the 2x2 identity matrix. Note that the contours of the density
+of the standard normal distribution <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mi>I</m:mi><m:mo>)</m:mo></m:mrow></m:math> are circles centered on the
+origin, and the density is rotationally symmetric.</para>
+      <para id="id64651">Now, suppose we observe some <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>=</m:mo><m:mi>A</m:mi><m:mi>s</m:mi></m:mrow></m:math>, where <m:math overflow="scroll"><m:mi>A</m:mi></m:math> is our mixing matrix. The distribution
+of <m:math overflow="scroll"><m:mi>x</m:mi></m:math> will also be Gaussian, with zero
+mean and covariance <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>x</m:mi><m:msup><m:mi>x</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>A</m:mi><m:mi>s</m:mi><m:msup><m:mi>s</m:mi><m:mi>T</m:mi></m:msup><m:msup><m:mi>A</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi>A</m:mi><m:msup><m:mi>A</m:mi><m:mi>T</m:mi></m:msup></m:mrow></m:math>. Now, let <m:math overflow="scroll"><m:mi>R</m:mi></m:math> be an arbitrary
+orthogonal (less formally, a rotation/reflection) matrix, so that <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:msup><m:mi>R</m:mi><m:mi>T</m:mi></m:msup><m:mo>=</m:mo><m:msup><m:mi>R</m:mi><m:mi>T</m:mi></m:msup><m:mi>R</m:mi><m:mo>=</m:mo><m:mi>I</m:mi></m:mrow></m:math>, and let <m:math overflow="scroll"><m:mrow><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup><m:mo>=</m:mo><m:mi>A</m:mi><m:mi>R</m:mi></m:mrow></m:math>.
+Then if the data had been mixed according to <m:math overflow="scroll"><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup></m:math> instead of <m:math overflow="scroll"><m:mi>A</m:mi></m:math>, we would have instead observed
+<m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mo>'</m:mo></m:msup><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup><m:mi>s</m:mi></m:mrow></m:math>. The distribution of <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mo>'</m:mo></m:msup></m:math> is also Gaussian, with zero mean and
+covariance <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:msup><m:mi>x</m:mi><m:mo>'</m:mo></m:msup><m:msup><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup><m:mi>s</m:mi><m:msup><m:mi>s</m:mi><m:mi>T</m:mi></m:msup><m:msup><m:mrow><m:mo>(</m:mo><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>A</m:mi><m:mi>R</m:mi><m:mi>s</m:mi><m:msup><m:mi>s</m:mi><m:mi>T</m:mi></m:msup><m:msup><m:mrow><m:mo>(</m:mo><m:mi>A</m:mi><m:mi>R</m:mi><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi>A</m:mi><m:mi>R</m:mi><m:msup><m:mi>R</m:mi><m:mi>T</m:mi></m:msup><m:msup><m:mi>A</m:mi><m:mi>T</m:mi></m:msup><m:mo>=</m:mo><m:mi>A</m:mi><m:msup><m:mi>A</m:mi><m:mi>T</m:mi></m:msup></m:mrow></m:math>. Hence, whether the mixing matrix is <m:math overflow="scroll"><m:mi>A</m:mi></m:math> or <m:math overflow="scroll"><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup></m:math>, we would
+observe data from a <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mi>A</m:mi><m:msup><m:mi>A</m:mi><m:mi>T</m:mi></m:msup><m:mo>)</m:mo></m:mrow></m:math> distribution. Thus, there is no way to tell if the sources
+were mixed using <m:math overflow="scroll"><m:mi>A</m:mi></m:math> and <m:math overflow="scroll"><m:msup><m:mi>A</m:mi><m:mo>'</m:mo></m:msup></m:math>. So, there is an arbitrary rotational component in the mixing matrix
+that cannot be determined from the data, and we cannot recover the original sources.</para>
+      <para id="id65117">Our argument above was based on the fact that the multivariate standard normal distribution
+is rotationally symmetric. Despite the bleak picture that this paints for ICA on Gaussian data,
+it turns out that, so long as the data is <emphasis effect="italics">not</emphasis> Gaussian, it is possible, given enough
+data, to recover the <m:math overflow="scroll"><m:mi>n</m:mi></m:math> independent sources.</para>
+    </section>
+    <section id="cid3">
+      <title>Densities and linear transformations</title>
+      <para id="id65147">Before moving on to derive the ICA algorithm proper, we first digress briefly to
+talk about the effect of linear transformations on densities.</para>
+      <para id="id65151">Suppose we have a random variable <m:math overflow="scroll"><m:mi>s</m:mi></m:math> drawn according to some density <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>. For
+simplicity, let us say for now that <m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>∈</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math> is a real number.
+Now, let the random variable <m:math overflow="scroll"><m:mi>x</m:mi></m:math> be defined according to <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>=</m:mo><m:mi>A</m:mi><m:mi>s</m:mi></m:mrow></m:math> (here, <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∈</m:mo><m:mi mathvariant="double-struck">R</m:mi><m:mo>,</m:mo><m:mi>A</m:mi><m:mo>∈</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math>).
+Let <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub></m:math> be the density of <m:math overflow="scroll"><m:mi>x</m:mi></m:math>. What is <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub></m:math>?</para>
+      <para id="id65294">Let <m:math overflow="scroll"><m:mrow><m:mi>W</m:mi><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:mrow></m:math>. To calculate the “probability” of a particular value of <m:math overflow="scroll"><m:mi>x</m:mi></m:math>,
+it is tempting to compute <m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>=</m:mo><m:mi>W</m:mi><m:mi>x</m:mi></m:mrow></m:math>, then evaluate <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub></m:math> at that point, and conclude
+that “<m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>W</m:mi><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.” However, <emphasis effect="italics">this is incorrect</emphasis>.
+For example, let <m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>∼</m:mo><m:mi> Uniform </m:mi><m:mo>[</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>]</m:mo></m:mrow></m:math>, so that <m:math overflow="scroll"><m:mi>s</m:mi></m:math>'s density is <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mrow><m:mo>{</m:mo><m:mn>0</m:mn><m:mo>≤</m:mo><m:mi>s</m:mi><m:mo>≤</m:mo><m:mn>1</m:mn><m:mo>}</m:mo></m:mrow></m:mrow></m:math>. Now,
+let <m:math overflow="scroll"><m:mrow><m:mi>A</m:mi><m:mo>=</m:mo><m:mn>2</m:mn></m:mrow></m:math>, so that <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>=</m:mo><m:mn>2</m:mn><m:mi>s</m:mi></m:mrow></m:math>. Clearly, <m:math overflow="scroll"><m:mi>x</m:mi></m:math> is distributed uniformly in the interval <m:math overflow="scroll"><m:mrow><m:mo>[</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>2</m:mn><m:mo>]</m:mo></m:mrow></m:math>.
+Thus, its density is given by <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mrow><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>5</m:mn><m:mo>)</m:mo></m:mrow><m:mn>1</m:mn><m:mrow><m:mo>{</m:mo><m:mn>0</m:mn><m:mo>≤</m:mo><m:mi>x</m:mi><m:mo>≤</m:mo><m:mn>2</m:mn><m:mo>}</m:mo></m:mrow></m:mrow></m:math>. This does not equal
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>W</m:mi><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, where <m:math overflow="scroll"><m:mrow><m:mi>W</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>5</m:mn><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:mrow></m:math>. Instead, the correct formula is <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>W</m:mi><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mrow><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow></m:mrow></m:math>.</para>
+      <para id="id65705">More generally, if <m:math overflow="scroll"><m:mi>s</m:mi></m:math> is a vector-valued distribution with density <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub></m:math>, and <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>=</m:mo><m:mi>A</m:mi><m:mi>s</m:mi></m:mrow></m:math> for
+a square, invertible matrix <m:math overflow="scroll"><m:mi>A</m:mi></m:math>, then the density of <m:math overflow="scroll"><m:mi>x</m:mi></m:math> is given by</para>
+      <equation id="id65766">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>p</m:mi>
+              <m:mi>x</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:msub>
+              <m:mi>p</m:mi>
+              <m:mi>s</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>W</m:mi>
+              <m:mi>x</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>·</m:mo>
+            <m:mrow>
+              <m:mo>|</m:mo>
+              <m:mi>W</m:mi>
+              <m:mo>|</m:mo>
+            </m:mrow>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id65822">where <m:math overflow="scroll"><m:mrow><m:mi>W</m:mi><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:mrow></m:math>.</para>
+      <para id="id65850"><emphasis effect="bold">Remark.</emphasis> If you've seen the result that <m:math overflow="scroll"><m:mi>A</m:mi></m:math> maps <m:math overflow="scroll"><m:msup><m:mrow><m:mo>[</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>]</m:mo></m:mrow><m:mi>n</m:mi></m:msup></m:math> to a set of volume <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>A</m:mi><m:mo>|</m:mo></m:mrow></m:math>,
+then here's another way to remember the formula for <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub></m:math> given above, that also
+generalizes our previous 1-dimensional example. Specifically, let <m:math overflow="scroll"><m:mrow><m:mi>A</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>n</m:mi><m:mo>×</m:mo><m:mi>n</m:mi></m:mrow></m:msup></m:mrow></m:math> be
+given, and let <m:math overflow="scroll"><m:mrow><m:mi>W</m:mi><m:mo>=</m:mo><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:mrow></m:math> as usual.
+Also let <m:math overflow="scroll"><m:mrow><m:msub><m:mi>C</m:mi><m:mn>1</m:mn></m:msub><m:mo>=</m:mo><m:msup><m:mrow><m:mo>[</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>]</m:mo></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> be the <m:math overflow="scroll"><m:mi>n</m:mi></m:math>-dimensional hypercube, and define
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub><m:mo>=</m:mo><m:mrow><m:mo>{</m:mo><m:mi>A</m:mi><m:mi>s</m:mi><m:mo>:</m:mo><m:mi>s</m:mi><m:mo>∈</m:mo><m:msub><m:mi>C</m:mi><m:mn>1</m:mn></m:msub><m:mo>}</m:mo></m:mrow><m:mo>⊆</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> to be the image of <m:math overflow="scroll"><m:msub><m:mi>C</m:mi><m:mn>1</m:mn></m:msub></m:math> under the mapping given by <m:math overflow="scroll"><m:mi>A</m:mi></m:math>. Then it is
+a standard result in linear algebra (and, indeed, one of the ways of defining determinants)
+that the volume of <m:math overflow="scroll"><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub></m:math> is given by <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>A</m:mi><m:mo>|</m:mo></m:mrow></m:math>. Now, suppose <m:math overflow="scroll"><m:mi>s</m:mi></m:math> is uniformly distributed in
+<m:math overflow="scroll"><m:msup><m:mrow><m:mo>[</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>]</m:mo></m:mrow><m:mi>n</m:mi></m:msup></m:math>, so its density is <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mrow><m:mo>{</m:mo><m:mi>s</m:mi><m:mo>∈</m:mo><m:msub><m:mi>C</m:mi><m:mn>1</m:mn></m:msub><m:mo>}</m:mo></m:mrow></m:mrow></m:math>. Then clearly <m:math overflow="scroll"><m:mi>x</m:mi></m:math> will be uniformly
+distributed in <m:math overflow="scroll"><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub></m:math>. Its density is therefore found to be <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mrow><m:mo>{</m:mo><m:mi>x</m:mi><m:mo>∈</m:mo><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub><m:mo>}</m:mo></m:mrow><m:mo>/</m:mo><m:mi> vol </m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>
+(since it must integrate over <m:math overflow="scroll"><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub></m:math> to 1). But using the fact that the determinant of the
+inverse of a matrix is just the inverse of the determinant, we have <m:math overflow="scroll"><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:mi> vol </m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub><m:mo>)</m:mo></m:mrow><m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>/</m:mo><m:mo>|</m:mo><m:mi>A</m:mi><m:mo>|</m:mo><m:mo>=</m:mo><m:mo>|</m:mo></m:mrow><m:msup><m:mi>A</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup><m:mrow><m:mo>|</m:mo><m:mo>=</m:mo><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow></m:mrow></m:math>.
+Thus, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>x</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mrow><m:mo>{</m:mo><m:mi>x</m:mi><m:mo>∈</m:mo><m:msub><m:mi>C</m:mi><m:mn>2</m:mn></m:msub><m:mo>}</m:mo></m:mrow><m:mrow><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mrow><m:mo>{</m:mo><m:mi>W</m:mi><m:mi>x</m:mi><m:mo>∈</m:mo><m:msub><m:mi>C</m:mi><m:mn>1</m:mn></m:msub><m:mo>}</m:mo></m:mrow><m:mrow><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow><m:mo>=</m:mo><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>W</m:mi><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mrow><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow></m:mrow></m:math>.</para>
+    </section>
+    <section id="cid4">
+      <title>ICA algorithm</title>
+      <para id="id66492">We are now ready to derive an ICA algorithm. The algorithm we describe is due to Bell and
+Sejnowski, and the interpretation we give will be of their algorithm as a method for
+maximum likelihood estimation. (This is different from their original interpretation,
+which involved a complicated idea called the infomax principal, that is no longer
+necessary in the derivation given the modern understanding of ICA.)</para>
+      <para id="id66499">We suppose that the distribution of each source <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>i</m:mi></m:msub></m:math> is given by a density <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub></m:math>, and
+that the joint distribution of the sources <m:math overflow="scroll"><m:mi>s</m:mi></m:math> is given by</para>
+      <equation id="id66541">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∏</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>n</m:mi>
+            </m:munderover>
+            <m:msub>
+              <m:mi>p</m:mi>
+              <m:mi>s</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mi>i</m:mi>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id66601">Note that by modeling the joint distribution as a product of the marginal, we
+capture the assumption that the sources are independent. Using our formulas from
+the previous section, this implies the following density on <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>=</m:mo><m:mi>A</m:mi><m:mi>s</m:mi><m:mo>=</m:mo><m:msup><m:mi>W</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup><m:mi>s</m:mi></m:mrow></m:math>:</para>
+      <equation id="id66639">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∏</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>n</m:mi>
+            </m:munderover>
+            <m:msub>
+              <m:mi>p</m:mi>
+              <m:mi>s</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msubsup>
+                <m:mi>w</m:mi>
+                <m:mi>i</m:mi>
+                <m:mi>T</m:mi>
+              </m:msubsup>
+              <m:mi>x</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>·</m:mo>
+            <m:mrow>
+              <m:mo>|</m:mo>
+              <m:mi>W</m:mi>
+              <m:mo>|</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id66714">All that remains is to specify a density for the individual sources <m:math overflow="scroll"><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub></m:math>.</para>
+      <para id="id66735">Recall that, given a real-valued random variable <m:math overflow="scroll"><m:mi>z</m:mi></m:math>, its cumulative distribution function
+(cdf) <m:math overflow="scroll"><m:mi>F</m:mi></m:math> is defined by <m:math overflow="scroll"><m:mrow><m:mi>F</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>z</m:mi><m:mn>0</m:mn></m:msub><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>P</m:mi><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>≤</m:mo><m:msub><m:mi>z</m:mi><m:mn>0</m:mn></m:msub><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msubsup><m:mo>∫</m:mo><m:mrow><m:mo>-</m:mo><m:mi>∞</m:mi></m:mrow><m:msub><m:mi>z</m:mi><m:mn>0</m:mn></m:msub></m:msubsup><m:msub><m:mi>p</m:mi><m:mi>z</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow><m:mi>d</m:mi><m:mi>z</m:mi></m:mrow></m:math>.
+Also, the density of <m:math overflow="scroll"><m:mi>z</m:mi></m:math>
+can be found from the cdf by taking its derivative: <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>z</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msup><m:mi>F</m:mi><m:mo>'</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.</para>
+      <para id="id66890">Thus, to specify a density for the <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>i</m:mi></m:msub></m:math>'s, all we need to do is to specify some cdf
+for it. A cdf has to be a monotonic function that increases from zero to one. Following
+our previous discussion, we cannot choose the cdf to be the cdf of the Gaussian, as ICA
+doesn't work on Gaussian data. What we'll choose instead for the cdf, as a reasonable “default”
+function that slowly increases from 0 to 1, is the sigmoid function <m:math overflow="scroll"><m:mrow><m:mi>g</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>/</m:mo><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>+</m:mo><m:msup><m:mi>e</m:mi><m:mrow><m:mo>-</m:mo><m:mi>s</m:mi></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+Hence, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msup><m:mi>g</m:mi><m:mo>'</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.<footnote id="uid1">If you have prior knowledge that the sources' densities
+take a certain form, then it is a good idea to substitute that in here. But in the absence
+of such knowledge, the sigmoid function can be thought of as a reasonable default that seems to
+work well for many problems. Also, the presentation here assumes that either the data <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>
+has been preprocessed to have zero mean, or that it can naturally be expected to have zero
+mean (such as acoustic signals). This is necessary because our assumption that <m:math overflow="scroll"><m:mrow><m:msub><m:mi>p</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msup><m:mi>g</m:mi><m:mo>'</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>
+implies <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>s</m:mi><m:mo>]</m:mo><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>
+(the derivative of the logistic function is a symmetric function, and hence gives a density
+corresponding to a random variable with
+zero mean), which implies <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>x</m:mi><m:mo>]</m:mo><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>A</m:mi><m:mi>s</m:mi><m:mo>]</m:mo><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>.</footnote></para>
+      <para id="id67133">The square matrix <m:math overflow="scroll"><m:mi>W</m:mi></m:math> is the parameter in our model. Given a training set <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi><m:mo>}</m:mo></m:mrow></m:math>, the log
+likelihood is given by</para>
+      <equation id="id67188"><m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>ℓ</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>W</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mfenced separators="" open="(" close=")">
+              <m:munderover>
+                <m:mo>∑</m:mo>
+                <m:mrow>
+                  <m:mi>j</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+                <m:mi>n</m:mi>
+              </m:munderover>
+              <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+              <m:msup>
+                <m:mi>g</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msubsup>
+                  <m:mi>w</m:mi>
+                  <m:mi>j</m:mi>
+                  <m:mi>T</m:mi>
+                </m:msubsup>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:mo form="prefix">log</m:mo>
+              <m:mrow>
+                <m:mo>|</m:mo>
+                <m:mi>W</m:mi>
+                <m:mo>|</m:mo>
+              </m:mrow>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation><para id="id67306">We would like to maximize this in terms <m:math overflow="scroll"><m:mi>W</m:mi></m:math>. By taking derivatives
+and using the fact (from the first set of notes)
+that <m:math overflow="scroll"><m:mrow><m:msub><m:mi>∇</m:mi><m:mi>W</m:mi></m:msub><m:mrow><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow><m:mo>=</m:mo><m:mrow><m:mo>|</m:mo><m:mi>W</m:mi><m:mo>|</m:mo></m:mrow><m:msup><m:mrow><m:mo>(</m:mo><m:msup><m:mi>W</m:mi><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup></m:mrow></m:math>, we easily derive a stochastic gradient ascent learning
+rule. For a training example <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>, the update rule is:</para>
+      <equation id="id67396">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>W</m:mi>
+            <m:mo>:</m:mo>
+            <m:mo>=</m:mo>
+            <m:mi>W</m:mi>
+            <m:mo>+</m:mo>
+            <m:mi>α</m:mi>
+            <m:mfenced separators="" open="(" close=")">
+              <m:mfenced separators="" open="[" close="]">
+                <m:mtable>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mrow>
+                        <m:mn>1</m:mn>
+                        <m:mo>-</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mi>g</m:mi>
+                        <m:mo>(</m:mo>
+                        <m:msubsup>
+                          <m:mi>w</m:mi>
+                          <m:mn>1</m:mn>
+                          <m:mi>T</m:mi>
+                        </m:msubsup>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mtd>
+                  </m:mtr>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mrow>
+                        <m:mn>1</m:mn>
+                        <m:mo>-</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mi>g</m:mi>
+                        <m:mo>(</m:mo>
+                        <m:msubsup>
+                          <m:mi>w</m:mi>
+                          <m:mn>2</m:mn>
+                          <m:mi>T</m:mi>
+                        </m:msubsup>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mtd>
+                  </m:mtr>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mo>⋮</m:mo>
+                    </m:mtd>
+                  </m:mtr>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mrow>
+                        <m:mn>1</m:mn>
+                        <m:mo>-</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mi>g</m:mi>
+                        <m:mo>(</m:mo>
+                        <m:msubsup>
+                          <m:mi>w</m:mi>
+                          <m:mi>n</m:mi>
+                          <m:mi>T</m:mi>
+                        </m:msubsup>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mtd>
+                  </m:mtr>
+                </m:mtable>
+              </m:mfenced>
+              <m:msup>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msup>
+              <m:mo>+</m:mo>
+              <m:msup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>W</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mrow>
+                  <m:mo>-</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+              </m:msup>
+            </m:mfenced>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id67602">where <m:math overflow="scroll"><m:mi>α</m:mi></m:math> is the learning rate.</para>
+      <para id="id67617">After the algorithm converges, we then compute <m:math overflow="scroll"><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mi>W</m:mi><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math> to recover the original
+sources.</para>
+      <para id="id67659"><emphasis effect="bold">Remark.</emphasis>
+When writing down the likelihood of the data, we implicity assumed that the
+<m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s were independent of each other (for different values of <m:math overflow="scroll"><m:mi>i</m:mi></m:math>; note this issue
+is different from whether the different coordinates of <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> are independent), so that the likelihood
+of the training set was given by <m:math overflow="scroll"><m:mrow><m:msub><m:mo>∏</m:mo><m:mi>i</m:mi></m:msub><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>W</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+This assumption is clearly incorrect for speech data and other time series where the <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s
+are dependent, but it can
+be shown that having correlated training examples will not hurt the performance of the
+algorithm if we have sufficient data. But, for problems where successive training examples
+are correlated, when implementing stochastic gradient ascent,
+it also sometimes helps accelerate convergence if we visit training examples in a
+randomly permuted order. (I.e., run stochastic gradient ascent on a randomly shuffled copy of the training set.)</para>
+    </section>
+  </content>
+</document>

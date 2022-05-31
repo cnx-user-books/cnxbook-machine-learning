@@ -1,0 +1,35 @@
+<document xmlns="http://cnx.rice.edu/cnxml">
+  <title>Machine Learning Syllabus</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45958</md:content-id>
+  <md:title>Machine Learning Syllabus</md:title>
+  <md:abstract/>
+  <md:uuid>dc26a60d-eff8-482c-acee-0c98faf4e5fe</md:uuid>
+</metadata>
+
+<content>
+    <section id="fs-id1172657731719">
+    <title>Course Description</title><para id="import-auto-id1170473026496">This course provides a broad introduction to machine learning and statistical pattern recognition. Topics include: supervised learning (generative/discriminative learning, parametric/non-parametric learning, neural networks, support vector machines); unsupervised learning (clustering, dimensionality reduction, kernel methods); learning theory (bias/variance tradeoffs; VC theory; large margins); reinforcement learning and adaptive control. The course will also discuss recent applications of machine learning, such as to robotic control, data mining, autonomous navigation, bioinformatics, speech recognition, and text and web data processing. </para></section>
+<section id="fs-id1168315105500"><title>Prerequisites </title><para id="import-auto-id1170487979600">Students are expected to have the following background:
+<list id="eip-id1170485540726">
+<item>Knowledge of basic computer science principles and skills, at a level sufficient to write a reasonably non-trivial computer program. </item>
+    <item>Familiarity with the basic probability theory. (Stat 116 is sufficient but not necessary.) </item>
+    <item>Familiarity with the basic linear algebra (any one of Math 51, Math 103, Math 113, or CS 205 would be much more than necessary.) </item>
+</list>
+</para></section><section id="fs-id1168311171731"><title>Course Materials </title><para id="import-auto-id1170502361880">There is no required text for this course. Notes will be posted periodically on the course web site. The following books are recommended as optional reading: 
+<list id="eip-id1170494699918">    
+<item>Christopher Bishop, Pattern Recognition and Machine Learning. Springer, 2006. </item>
+<item>Richard Duda, Peter Hart and David Stork, Pattern Classification, 2nd ed. John Wiley &amp; Sons, 2001. </item>
+<item>Tom Mitchell, Machine Learning. McGraw-Hill, 1997. Richard Sutton and Andrew Barto, Reinforcement Learning: An introduction. MIT Press, 1998</item>
+</list> </para>
+</section><section id="fs-id1168310299405">
+    <title>Homeworks and Grading </title>
+    <para id="import-auto-id1170473495686">There will be four written homeworks, one midterm, and one major open-ended term project. The homeworks will contain written questions and questions that require some Matlab programming. In the term project, you will investigate some interesting aspect of machine learning or apply machine learning to a problem that interests you. We try very hard to make questions unambiguous, but some ambiguities may remain. Ask if confused or state your assumptions explicitly. Reasonable assumptions will be accepted in case of ambiguous questions. </para>
+    <para id="import-auto-id1170480669920">A note on the honor code: We strongly encourage students to form study groups. Students may discuss and work on homework problems in groups. However, each student must write down the solutions independently, and without referring to written notes from the joint session. In other words, each student must understand the solution well enough in order to reconstruct it by him/herself. In addition, each student should write on the problem set the set of people with whom s/he collaborated. Further, because we occasionally reuse problem set questions from previous years, we expect students not to copy, refer to, or look at the solutions in preparing their answers. It is an honor code violation to intentionally refer to a previous year's solutions. </para><para id="import-auto-id1170495369001">Late homeworks: Recognizing that students may face unusual circumstances and require some flexibility in the course of the quarter, each student will have a total of seven free late (calendar) days to use as s/he sees fit. Once these late days are exhausted, any homework turned in late will be penalized 20% per late day. However, no homework will be accepted more than four days after its due date, and late days cannot be used for the final project writeup. Each 24 hours or part thereof that a homework is late uses up one full late day. </para><para id="import-auto-id1170473142381">Course grades will be based 40% on homeworks (10% each), 20% on the midterm, and 40% on the major term project. Up to 3% extra credit may be awarded for class participation. </para>
+</section>
+<section id="fs-id1168315126435">
+    <title>Sections </title>
+    <para id="import-auto-id1170472039403">To review material from the prerequisites or to supplement the lecture material, there will occasionally be extra discussion sections held on Friday. An announcement will be made whenever one of these sections is held. Attendance at these sections is optional. </para>
+</section>
+</content>
+</document>

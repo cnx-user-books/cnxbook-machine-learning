@@ -1,0 +1,59 @@
+<col:collection xmlns="http://cnx.rice.edu/collxml" xmlns:md="http://cnx.rice.edu/mdml" xmlns:col="http://cnx.rice.edu/collxml" xml:lang="en">
+  <metadata xmlns:md="http://cnx.rice.edu/mdml" mdml-version="0.5">
+    <md:content-id>col11500</md:content-id>
+    <md:title>Machine Learning</md:title>
+    <md:language>en</md:language>
+    <md:license url="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution License</md:license>
+    <md:uuid>4c74010a-38d0-4a6a-9a11-4dfe8a7cbf96</md:uuid>
+<md:slug>machine-learning</md:slug>
+</metadata>
+  <col:content>
+    <col:module document="m45891"/>
+    <col:module document="m45958"/>
+    <col:subcollection>
+      <md:title>Lectures</md:title>
+      <col:content>
+        <col:module document="m45863"/>
+        <col:module document="m45859"/>
+        <col:module document="m45874"/>
+        <col:module document="m45870"/>
+        <col:module document="m45890"/>
+        <col:module document="m45907"/>
+        <col:module document="m45896"/>
+        <col:module document="m45905"/>
+        <col:module document="m45916"/>
+        <col:module document="m45909"/>
+        <col:module document="m45918"/>
+        <col:module document="m45921"/>
+        <col:module document="m45924"/>
+        <col:module document="m45952"/>
+        <col:module document="m45930"/>
+        <col:module document="m45932"/>
+        <col:module document="m45944"/>
+        <col:module document="m45950"/>
+        <col:module document="m45947"/>
+        <col:module document="m45940"/>
+      </col:content>
+    </col:subcollection>
+    <col:subcollection>
+      <md:title>Lecture Notes</md:title>
+      <col:content>
+        <col:module document="m45865"/>
+        <col:module document="m45861"/>
+        <col:module document="m45867"/>
+        <col:module document="m45872"/>
+        <col:module document="m45885"/>
+        <col:module document="m45881"/>
+        <col:module document="m45898"/>
+        <col:module document="m45893"/>
+        <col:module document="m45901"/>
+        <col:module document="m45915"/>
+        <col:module document="m45913"/>
+        <col:module document="m45920"/>
+        <col:module document="m45954"/>
+      </col:content>
+    </col:subcollection>
+    <col:module document="m45963"/>
+    <col:module document="m45957"/>
+  </col:content>
+</col:collection>

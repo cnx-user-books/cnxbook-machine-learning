@@ -1,0 +1,766 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 5 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45885</md:content-id>
+  <md:title>Machine Learning Lecture 5 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>c1bc8e4c-caaa-4bda-a85b-2cd0f95a5f81</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>Regularization and model selection</title>
+      <para id="id265600">Suppose we are trying to select among several different models
+for a learning problem. For instance, we might be using a polynomial
+regression model
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>h</m:mi><m:mi>θ</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>g</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>θ</m:mi><m:mn>0</m:mn></m:msub><m:mo>+</m:mo><m:msub><m:mi>θ</m:mi><m:mn>1</m:mn></m:msub><m:mi>x</m:mi><m:mo>+</m:mo><m:msub><m:mi>θ</m:mi><m:mn>2</m:mn></m:msub><m:msup><m:mi>x</m:mi><m:mn>2</m:mn></m:msup><m:mo>+</m:mo><m:mo>⋯</m:mo><m:mo>+</m:mo><m:msub><m:mi>θ</m:mi><m:mi>k</m:mi></m:msub><m:msup><m:mi>x</m:mi><m:mi>k</m:mi></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>,
+and wish to decide if <m:math overflow="scroll"><m:mi>k</m:mi></m:math> should be 0, 1, ..., or 10.
+How can we automatically select a
+model that represents a good tradeoff
+between the twin evils of bias and variance<footnote id="uid1">Given that we
+said in the previous set of notes that bias and variance are two very different
+beasts, some readers may be wondering if we should be calling them “twin”
+evils here. Perhaps it'd be better to think of them as non-identical twins.
+The phrase “the fraternal twin evils of bias and variance” doesn't have
+the same ring to it, though.</footnote>?
+Alternatively, suppose we want to
+automatically choose the bandwidth parameter <m:math overflow="scroll"><m:mi>τ</m:mi></m:math> for locally weighted regression,
+or the parameter <m:math overflow="scroll"><m:mi>C</m:mi></m:math> for our <m:math overflow="scroll"><m:msub><m:mi>ℓ</m:mi><m:mn>1</m:mn></m:msub></m:math>-regularized SVM. How can we
+do that?</para>
+      <para id="id266268">For the sake of concreteness, in these notes we assume we
+have some finite set of models <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">M</m:mi><m:mo>=</m:mo><m:mo>{</m:mo><m:msub><m:mi>M</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>M</m:mi><m:mi>d</m:mi></m:msub><m:mo>}</m:mo></m:mrow></m:math>
+that we're trying to select among. For instance, in our first
+example above, the model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> would be an
+<m:math overflow="scroll"><m:mi>i</m:mi></m:math>-th order polynomial regression model.
+(The generalization to infinite <m:math overflow="scroll"><m:mi mathvariant="script">M</m:mi></m:math> is not
+hard.<footnote id="uid2">If we are trying to choose from an infinite set of models, say
+corresponding to the possible values of the bandwidth <m:math overflow="scroll"><m:mrow><m:mi>τ</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mo>+</m:mo></m:msup></m:mrow></m:math>, we
+may discretize <m:math overflow="scroll"><m:mi>τ</m:mi></m:math> and consider only a finite number
+of possible values for it. More generally, most of the algorithms described here
+can all be viewed as performing optimization search in the space
+of models, and we can perform this search over infinite model
+classes as well.</footnote>)
+Alternatively, if we are trying to decide between using an SVM,
+a neural network or logistic regression, then <m:math overflow="scroll"><m:mi mathvariant="script">M</m:mi></m:math> may
+contain these models.</para>
+    </section>
+    <section id="cid2">
+      <title>Cross validation</title>
+      <para id="id266406">Let's suppose we are, as usual, given a training set <m:math overflow="scroll"><m:mi>S</m:mi></m:math>.
+Given what we know about empirical risk minimization,
+here's what might initially seem like a algorithm,
+resulting from using empirical risk minimization for model selection:</para>
+      <list id="id266419" display="block" list-type="enumerated">
+        <item id="uid3">Train each model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> on <m:math overflow="scroll"><m:mi>S</m:mi></m:math>, to get some hypothesis <m:math overflow="scroll"><m:msub><m:mi>h</m:mi><m:mi>i</m:mi></m:msub></m:math>.
+</item>
+        <item id="uid4">Pick the hypotheses with the smallest training error.
+</item>
+      </list>
+      <para id="id266481">This algorithm does <emphasis effect="italics">not</emphasis> work. Consider choosing the order
+of a polynomial. The higher the order of the polynomial, the better
+it will fit the training set <m:math overflow="scroll"><m:mi>S</m:mi></m:math>, and thus the lower the training error.
+Hence, this method will always select a high-variance, high-degree polynomial
+model, which we saw previously is often poor choice.</para>
+      <para id="id266500">Here's an algorithm that works better. In <emphasis effect="bold">hold-out cross validation</emphasis>
+(also called <emphasis effect="bold">simple cross validation</emphasis>),
+we do the following:</para>
+      <list id="id266514" display="block" list-type="enumerated">
+        <item id="uid5">Randomly split <m:math overflow="scroll"><m:mi>S</m:mi></m:math> into <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> train </m:mi></m:msub></m:math> (say, 70% of the data) and
+<m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:math> (the remaining 30%). Here, <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:math> is called the hold-out
+cross validation set.
+</item>
+        <item id="uid6">Train each model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> on <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> train </m:mi></m:msub></m:math> only, to get some hypothesis <m:math overflow="scroll"><m:msub><m:mi>h</m:mi><m:mi>i</m:mi></m:msub></m:math>.
+</item>
+        <item id="uid7">Select and output the hypothesis <m:math overflow="scroll"><m:msub><m:mi>h</m:mi><m:mi>i</m:mi></m:msub></m:math> that had the smallest
+error <m:math overflow="scroll"><m:mrow><m:msub><m:mover accent="true"><m:mi>ε</m:mi><m:mo>^</m:mo></m:mover><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:msub><m:mrow><m:mo>(</m:mo><m:msub><m:mi>h</m:mi><m:mi>i</m:mi></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math> on the hold out cross validation set.
+(Recall, <m:math overflow="scroll"><m:mrow><m:msub><m:mover accent="true"><m:mi>ε</m:mi><m:mo>^</m:mo></m:mover><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:msub><m:mrow><m:mo>(</m:mo><m:mi>h</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> denotes the empirical error of <m:math overflow="scroll"><m:mi>h</m:mi></m:math> on the set
+of examples in <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:math>.)
+</item>
+      </list>
+      <para id="id266748">By testing on a set of examples <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:math> that the models were not trained on,
+we obtain a better estimate of each hypothesis <m:math overflow="scroll"><m:msub><m:mi>h</m:mi><m:mi>i</m:mi></m:msub></m:math>'s true generalization
+error, and can then pick the one with the smallest estimated generalization error.
+Usually, somewhere between <m:math overflow="scroll"><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:mn>4</m:mn><m:mo>-</m:mo><m:mn>1</m:mn><m:mo>/</m:mo><m:mn>3</m:mn></m:mrow></m:math> of the data is used in the hold out
+cross validation set, and 30% is a typical choice.</para>
+      <para id="id266802">Optionally, step 3 in the algorithm may also be replaced with selecting the model
+<m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> according to <m:math overflow="scroll"><m:mrow><m:mo form="prefix">arg</m:mo><m:msub><m:mo movablelimits="true" form="prefix">min</m:mo><m:mi>i</m:mi></m:msub><m:msub><m:mover accent="true"><m:mi>ε</m:mi><m:mo>^</m:mo></m:mover><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:msub><m:mrow><m:mo>(</m:mo><m:msub><m:mi>h</m:mi><m:mi>i</m:mi></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, and then retraining
+<m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> on the entire training set <m:math overflow="scroll"><m:mi>S</m:mi></m:math>. (This is often a good idea,
+with one exception being learning algorithms that are be very sensitive to
+perturbations of the initial conditions and/or data.
+For these methods, <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> doing well on <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> train </m:mi></m:msub></m:math> does not necessarily
+mean it will also do well on <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi> cv </m:mi></m:msub></m:math>, and it might be better to forgo
+this retraining step.)</para>
+      <para id="id266937">The disadvantage of using hold out cross validation is that it “wastes” about 30% of the data.
+Even if we were to take the optional step of retraining the model on the
+entire training set, it's still as if we're trying to find a good model for
+a learning problem in which we had <m:math overflow="scroll"><m:mrow><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>7</m:mn><m:mi>m</m:mi></m:mrow></m:math> training examples, rather than <m:math overflow="scroll"><m:mi>m</m:mi></m:math>
+training examples, since we're testing models that were trained on only <m:math overflow="scroll"><m:mrow><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>7</m:mn><m:mi>m</m:mi></m:mrow></m:math>
+examples each time. While this is fine if data is abundant and/or cheap,
+in learning problems in which data is scarce (consider a problem with <m:math overflow="scroll"><m:mrow><m:mi>m</m:mi><m:mo>=</m:mo><m:mn>20</m:mn></m:mrow></m:math>, say),
+we'd like to do something better.</para>
+      <para id="id266999">Here is a method,
+called <emphasis effect="bold"><m:math overflow="scroll"><m:mi>k</m:mi></m:math>-fold
+cross validation</emphasis>, that
+holds out less data each time:</para>
+      <list id="id267015" display="block" list-type="enumerated">
+        <item id="uid8">Randomly split <m:math overflow="scroll"><m:mi>S</m:mi></m:math> into <m:math overflow="scroll"><m:mi>k</m:mi></m:math> disjoint subsets of <m:math overflow="scroll"><m:mrow><m:mi>m</m:mi><m:mo>/</m:mo><m:mi>k</m:mi></m:mrow></m:math> training examples each. Let's
+call these subsets <m:math overflow="scroll"><m:mrow><m:msub><m:mi>S</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>S</m:mi><m:mi>k</m:mi></m:msub></m:mrow></m:math>.
+</item>
+        <item id="uid9">For each model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math>, we evaluate it as follows:
+<list id="id267111" display="block" list-type="enumerated"><item id="uid10"><label/>For <m:math overflow="scroll"><m:mrow><m:mi>j</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>k</m:mi></m:mrow></m:math><list id="id267147" display="block" list-type="enumerated"><item id="uid11"><label/>Train the model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> on <m:math overflow="scroll"><m:mrow><m:msub><m:mi>S</m:mi><m:mn>1</m:mn></m:msub><m:mo>∪</m:mo><m:mo>⋯</m:mo><m:mo>∪</m:mo><m:msub><m:mi>S</m:mi><m:mrow><m:mi>j</m:mi><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msub><m:mo>∪</m:mo><m:msub><m:mi>S</m:mi><m:mrow><m:mi>j</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub><m:mo>∪</m:mo><m:mo>⋯</m:mo><m:msub><m:mi>S</m:mi><m:mi>k</m:mi></m:msub></m:mrow></m:math>
+(i.e., train on all the data except <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi>j</m:mi></m:msub></m:math>)
+to get some hypothesis <m:math overflow="scroll"><m:msub><m:mi>h</m:mi><m:mrow><m:mi>i</m:mi><m:mi>j</m:mi></m:mrow></m:msub></m:math>.
+</item><item id="uid12"><label/>Test the hypothesis <m:math overflow="scroll"><m:msub><m:mi>h</m:mi><m:mrow><m:mi>i</m:mi><m:mi>j</m:mi></m:mrow></m:msub></m:math> on <m:math overflow="scroll"><m:msub><m:mi>S</m:mi><m:mi>j</m:mi></m:msub></m:math>, to get <m:math overflow="scroll"><m:mrow><m:msub><m:mover accent="true"><m:mi>ε</m:mi><m:mo>^</m:mo></m:mover><m:msub><m:mi>S</m:mi><m:mi>j</m:mi></m:msub></m:msub><m:mrow><m:mo>(</m:mo><m:msub><m:mi>h</m:mi><m:mrow><m:mi>i</m:mi><m:mi>j</m:mi></m:mrow></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+</item></list></item><item id="uid13"><label/>The estimated generalization error of model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> is then calculated as the average
+of the <m:math overflow="scroll"><m:mrow><m:msub><m:mover accent="true"><m:mi>ε</m:mi><m:mo>^</m:mo></m:mover><m:msub><m:mi>S</m:mi><m:mi>j</m:mi></m:msub></m:msub><m:mrow><m:mo>(</m:mo><m:msub><m:mi>h</m:mi><m:mrow><m:mi>i</m:mi><m:mi>j</m:mi></m:mrow></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>'s (averaged over <m:math overflow="scroll"><m:mi>j</m:mi></m:math>).
+</item></list></item>
+        <item id="uid14">Pick the model <m:math overflow="scroll"><m:msub><m:mi>M</m:mi><m:mi>i</m:mi></m:msub></m:math> with the lowest estimated generalization error, and retrain
+that model on the entire training set <m:math overflow="scroll"><m:mi>S</m:mi></m:math>. The resulting hypothesis is then output
+as our final answer.
+</item>
+      </list>
+      <para id="id267463">A typical choice for the number of folds to use here would be <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>10</m:mn></m:mrow></m:math>. While the fraction
+of data held out each time is now <m:math overflow="scroll"><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:mi>k</m:mi></m:mrow></m:math>—much smaller than before—this procedure may
+also be more computationally expensive than hold-out cross
+validation, since we now need train to each model <m:math overflow="scroll"><m:mi>k</m:mi></m:math> times.</para>
+      <para id="id267504">While <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>10</m:mn></m:mrow></m:math> is a commonly used choice, in problems in which data is really scarce,
+sometimes we will use the extreme choice of <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mi>m</m:mi></m:mrow></m:math> in order to leave out as little data as possible
+each time. In this setting, we would repeatedly train on all but one of the
+training examples in <m:math overflow="scroll"><m:mi>S</m:mi></m:math>, and test on that held-out example. The resulting <m:math overflow="scroll"><m:mrow><m:mi>m</m:mi><m:mo>=</m:mo><m:mi>k</m:mi></m:mrow></m:math> errors
+are then averaged together to obtain our estimate of the generalization error of a model.
+This method has its own name;
+since we're holding out one training example at a time,
+this method is called <emphasis effect="bold">leave-one-out cross validation.</emphasis></para>
+      <para id="id267568">Finally, even though we have described the different versions of
+cross validation as methods for selecting a model, they can
+also be used more simply to evaluate a <emphasis effect="italics">single</emphasis> model
+or algorithm. For example, if you have implemented some learning
+algorithm and want to estimate how well it performs for your
+application (or if you have invented a novel learning algorithm
+and want to report in a technical paper how well it performs on
+various test sets), cross validation would give a reasonable
+way of doing so.</para>
+    </section>
+    <section id="cid3">
+      <title>Feature Selection</title>
+      <para id="id267591">One special and important case of model selection is called
+feature selection. To motivate this, imagine that you have
+a supervised learning problem where the number of features <m:math overflow="scroll"><m:mi>n</m:mi></m:math>
+is very large (perhaps <m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>≫</m:mo><m:mi>m</m:mi></m:mrow></m:math>), but you suspect that there is
+only a small number of features that are “relevant” to the
+learning task.
+Even if you use a simple linear classifier (such as the
+perceptron) over the <m:math overflow="scroll"><m:mi>n</m:mi></m:math> input features, the VC dimension of
+your hypothesis class would still be <m:math overflow="scroll"><m:mrow><m:mi>O</m:mi><m:mo>(</m:mo><m:mi>n</m:mi><m:mo>)</m:mo></m:mrow></m:math>, and thus
+overfitting would be a potential problem unless the
+training set is fairly large.</para>
+      <para id="id267648">In such a setting, you can apply a feature selection algorithm to reduce
+the number of features. Given <m:math overflow="scroll"><m:mi>n</m:mi></m:math> features,
+there are <m:math overflow="scroll"><m:msup><m:mn>2</m:mn><m:mi>n</m:mi></m:msup></m:math> possible feature subsets (since each of the <m:math overflow="scroll"><m:mi>n</m:mi></m:math>
+features can either be included or excluded from the subset),
+and thus feature selection can be
+posed as a model selection problem over <m:math overflow="scroll"><m:msup><m:mn>2</m:mn><m:mi>n</m:mi></m:msup></m:math> possible models.
+For large values of <m:math overflow="scroll"><m:mi>n</m:mi></m:math>, it's usually too
+expensive to explicitly enumerate over and compare all <m:math overflow="scroll"><m:msup><m:mn>2</m:mn><m:mi>n</m:mi></m:msup></m:math> models,
+and so typically some heuristic search procedure is used to find a
+good feature subset. The following search procedure is called
+<emphasis effect="bold">forward search</emphasis>:</para>
+      <list id="id267731" display="block" list-type="enumerated">
+        <item id="uid15">Initialize <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">F</m:mi><m:mo>=</m:mo><m:mi>∅</m:mi></m:mrow></m:math>.
+</item>
+        <item id="uid16">Repeat <m:math overflow="scroll"><m:mo>{</m:mo></m:math><list id="id267783" display="block" list-type="enumerated"><item id="uid17">For <m:math overflow="scroll"><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>n</m:mi></m:mrow></m:math> if <m:math overflow="scroll"><m:mrow><m:mi>i</m:mi><m:mo>∉</m:mo><m:mi mathvariant="script">F</m:mi></m:mrow></m:math>, let <m:math overflow="scroll"><m:mrow><m:msub><m:mi mathvariant="script">F</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:mi mathvariant="script">F</m:mi><m:mo>∪</m:mo><m:mrow><m:mo>{</m:mo><m:mi>i</m:mi><m:mo>}</m:mo></m:mrow></m:mrow></m:math>,
+and use some version of cross validation to evaluate features <m:math overflow="scroll"><m:msub><m:mi mathvariant="script">F</m:mi><m:mi>i</m:mi></m:msub></m:math>. (i.e.,
+train your learning algorithm using only the features in <m:math overflow="scroll"><m:msub><m:mi mathvariant="script">F</m:mi><m:mi>i</m:mi></m:msub></m:math>, and estimate
+its generalization error.)
+</item><item id="uid18">Set <m:math overflow="scroll"><m:mi mathvariant="script">F</m:mi></m:math> to be the best feature subset found on step (a).
+</item></list></item>
+        <item id="uid19">
+          <label/>
+          <m:math overflow="scroll">
+            <m:mo>}</m:mo>
+          </m:math>
+        </item>
+        <item id="uid20">Select and output the best feature subset that was evaluated
+during the entire search procedure.
+</item>
+      </list>
+      <para id="id267963">The outer loop of the algorithm can be terminated either
+when <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">F</m:mi><m:mo>=</m:mo><m:mo>{</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>n</m:mi><m:mo>}</m:mo></m:mrow></m:math> is
+the set of all features, or when <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi mathvariant="script">F</m:mi><m:mo>|</m:mo></m:mrow></m:math> exceeds some pre-set threshold
+(corresponding to the maximum number of features that you want the algorithm
+to consider using).</para>
+      <para id="id268015">This algorithm described above one instantiation of
+<emphasis effect="bold">wrapper model feature selection</emphasis>, since it is a
+procedure that “wraps” around your learning algorithm,
+and repeatedly makes calls to the learning algorithm to evaluate how
+well it does using different feature subsets. Aside from forward
+search, other search procedures can also be used.
+For example, <emphasis effect="bold">backward search</emphasis>
+starts off with <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">F</m:mi><m:mo>=</m:mo><m:mo>{</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>n</m:mi><m:mo>}</m:mo></m:mrow></m:math> as the set of all features,
+and repeatedly deletes features one at a time (evaluating single-feature
+deletions in a similar manner to how forward search evaluates single-feature
+additions) until <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">F</m:mi><m:mo>=</m:mo><m:mi>∅</m:mi></m:mrow></m:math>.</para>
+      <para id="id268082">Wrapper feature selection algorithms often work quite well, but can
+be computationally expensive given how that they need to make
+many calls to the learning algorithm. Indeed, complete forward
+search (terminating when <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">F</m:mi><m:mo>=</m:mo><m:mo>{</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>n</m:mi><m:mo>}</m:mo></m:mrow></m:math>)
+would take about <m:math overflow="scroll"><m:mrow><m:mi>O</m:mi><m:mo>(</m:mo><m:msup><m:mi>n</m:mi><m:mn>2</m:mn></m:msup><m:mo>)</m:mo></m:mrow></m:math> calls to the learning algorithm.</para>
+      <para id="id268140"><emphasis effect="bold">Filter feature selection</emphasis> methods give heuristic, but computationally
+much cheaper, ways of choosing a feature subset.
+The idea here is to compute some
+simple score <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:math> that measures how informative each
+feature <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> is about the class labels <m:math overflow="scroll"><m:mi>y</m:mi></m:math>. Then, we simply pick the
+<m:math overflow="scroll"><m:mi>k</m:mi></m:math> features with the largest scores <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:math>.</para>
+      <para id="id268214">One possible choice of the score would be define <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:math> to be (the
+absolute value of) the correlation between <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:mi>y</m:mi></m:math>, as measured on the training
+data. This would result in our choosing the features that are the most
+strongly correlated with the class labels. In practice, it is more common
+(particularly for discrete-valued features <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math>)
+to choose <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:math> to be the <emphasis effect="bold">mutual information</emphasis> <m:math overflow="scroll"><m:mrow><m:mi> MI </m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> between
+<m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:mi>y</m:mi></m:math>:</para><equation id="id268343">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi> MI </m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>x</m:mi>
+                <m:mi>i</m:mi>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:msub>
+                  <m:mi>x</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mo>∈</m:mo>
+                <m:mrow>
+                  <m:mo>{</m:mo>
+                  <m:mn>0</m:mn>
+                  <m:mo>,</m:mo>
+                  <m:mn>1</m:mn>
+                  <m:mo>}</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>y</m:mi>
+                <m:mo>∈</m:mo>
+                <m:mo>{</m:mo>
+                <m:mn>0</m:mn>
+                <m:mo>,</m:mo>
+                <m:mn>1</m:mn>
+                <m:mo>}</m:mo>
+              </m:mrow>
+            </m:munder>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>x</m:mi>
+                <m:mi>i</m:mi>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo form="prefix">log</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>x</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mo>,</m:mo>
+                <m:mi>y</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msub>
+                    <m:mi>x</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mi>p</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>y</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id268498">(The equation above assumes that <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:mi>y</m:mi></m:math> are binary-valued; more generally
+the summations would be over the domains of the variables.) The probabilities above
+<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>)</m:mo></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> can all be estimated according to their
+empirical distributions on the training set.</para>
+      <para id="id268592">To gain intuition about what this score does, note that the mutual information
+can also be expressed as a Kullback-Leibler (KL) divergence:</para>
+      <equation id="id268597">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi> MI </m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>x</m:mi>
+                <m:mi>i</m:mi>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mi> KL </m:mi>
+            <m:mfenced separators="" open="(" close=")">
+              <m:mi>p</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>x</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mo>,</m:mo>
+                <m:mi>y</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:mo>|</m:mo>
+                <m:mo>|</m:mo>
+              </m:mrow>
+              <m:mi>p</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>x</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mi>p</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>y</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:mfenced>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id268686">You'll get to play more with KL-divergence in Problem set #3, but informally,
+this gives a measure of how different the probability
+distributions
+<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>)</m:mo></m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> are. If <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:mi>y</m:mi></m:math> are independent random variables,
+then we would have <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>)</m:mo></m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, and the KL-divergence between the
+two distributions will be zero. This is consistent with the idea if <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:mi>y</m:mi></m:math>
+are independent, then <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> is clearly very “non-informative” about <m:math overflow="scroll"><m:mi>y</m:mi></m:math>, and thus
+the score <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:math> should be small. Conversely, if <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> is very “informative”
+about <m:math overflow="scroll"><m:mi>y</m:mi></m:math>, then their mutual information <m:math overflow="scroll"><m:mrow><m:mi> MI </m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> would be large.</para>
+      <para id="id268941">One final detail: Now that you've ranked the features according to their scores <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:math>,
+how do you decide how many features <m:math overflow="scroll"><m:mi>k</m:mi></m:math> to choose? Well, one standard way to
+do so is to use cross validation to select among the possible values of <m:math overflow="scroll"><m:mi>k</m:mi></m:math>. For example,
+when applying naive Bayes to text classification—a problem where <m:math overflow="scroll"><m:mi>n</m:mi></m:math>, the vocabulary
+size, is usually very large—using this method to select a feature subset often
+results in increased classifier accuracy.</para>
+    </section>
+    <section id="cid4">
+      <title>Bayesian statistics and regularization</title>
+      <para id="id269002">In this section, we will talk about one more tool in our arsenal for
+our battle against overfitting.</para>
+      <para id="id269006">At the beginning of the quarter, we talked about parameter fitting
+using maximum likelihood (ML), and chose our parameters according to</para>
+      <equation id="id269011">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>θ</m:mi>
+              <m:mi> ML </m:mi>
+            </m:msub>
+            <m:mo>=</m:mo>
+            <m:mo form="prefix">arg</m:mo>
+            <m:munder>
+              <m:mo movablelimits="true" form="prefix">max</m:mo>
+              <m:mi>θ</m:mi>
+            </m:munder>
+            <m:munderover>
+              <m:mo>∏</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>y</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>|</m:mo>
+              <m:msup>
+                <m:mi>x</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>;</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id269105">Throughout our subsequent discussions, we viewed <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> as an unknown
+parameter of the world.
+This view of the <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> as being <emphasis effect="italics">constant-valued
+but unknown</emphasis> is taken in <emphasis effect="bold">frequentist</emphasis> statistics.
+In the frequentist this view of the world, <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> is
+not random—it just happens to be unknown—and it's our job to come
+up with statistical procedures (such as maximum likelihood) to try to
+estimate this parameter.</para>
+      <para id="id269155">An alternative way to approach our parameter estimation problems is
+to take the <emphasis effect="bold">Bayesian</emphasis>
+view of the world, and think of <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> as being a <emphasis effect="italics">random variable</emphasis> whose
+value is unknown.
+In this approach, we would specify a <emphasis effect="bold">prior distribution</emphasis><m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> on <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>
+that expresses our “prior beliefs” about the parameters. Given a training set
+<m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>=</m:mo><m:msubsup><m:mrow><m:mo>{</m:mo><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>}</m:mo></m:mrow><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup></m:mrow></m:math>, when we are asked to make a prediction on a
+new value of <m:math overflow="scroll"><m:mi>x</m:mi></m:math>, we can then compute the posterior distribution on the parameters</para>
+      <equation id="uid21">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mi>θ</m:mi>
+                  <m:mo>|</m:mo>
+                  <m:mi>S</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>S</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>S</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:msubsup>
+                        <m:mo>∏</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>|</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>,</m:mo>
+                        <m:mi>θ</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mfenced>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>θ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:msub>
+                      <m:mo>∫</m:mo>
+                      <m:mi>θ</m:mi>
+                    </m:msub>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:msubsup>
+                        <m:mo>∏</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>|</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>,</m:mo>
+                        <m:mi>θ</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>θ</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mfenced>
+                    <m:mi>d</m:mi>
+                    <m:mi>θ</m:mi>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id269533">In the equation above, <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> comes from whatever model you're
+using for your learning problem. For example, if you are using Bayesian logistic
+regression, then you might choose <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msub><m:mi>h</m:mi><m:mi>θ</m:mi></m:msub><m:msup><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:msup><m:msup><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>-</m:mo><m:msub><m:mi>h</m:mi><m:mi>θ</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>-</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>, where
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>h</m:mi><m:mi>θ</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>/</m:mo><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>+</m:mo><m:mo form="prefix">exp</m:mo><m:mrow><m:mo>(</m:mo><m:mo>-</m:mo><m:msup><m:mi>θ</m:mi><m:mi>T</m:mi></m:msup><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.<footnote id="uid22">Since we are
+now viewing <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> as a random variable, it is okay to condition on
+it value, and write “<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math>” instead of “<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>;</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math>.”</footnote></para>
+      <para id="id269891">When we are given a new test example <m:math overflow="scroll"><m:mi>x</m:mi></m:math> and asked to make it prediction on it,
+we can compute our posterior distribution on the class label using the
+posterior distribution on <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>:</para>
+      <equation id="uid23">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>|</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>S</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:msub>
+              <m:mo>∫</m:mo>
+              <m:mi>θ</m:mi>
+            </m:msub>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>|</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>|</m:mo>
+              <m:mi>S</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mi>d</m:mi>
+            <m:mi>θ</m:mi>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id269992">In the equation above, <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>)</m:mo></m:mrow></m:math> comes from <link target-id="uid21"/>.
+Thus, for example, if the goal is to the predict the expected
+value of <m:math overflow="scroll"><m:mi>y</m:mi></m:math> given <m:math overflow="scroll"><m:mi>x</m:mi></m:math>, then we would
+output<footnote id="uid24">The integral below would be replaced by a summation if <m:math overflow="scroll"><m:mi>y</m:mi></m:math> is discrete-valued.</footnote></para><equation id="id270060">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi mathvariant="normal">E</m:mi>
+            <m:mrow>
+              <m:mo>[</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>|</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>S</m:mi>
+              <m:mo>]</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:msub>
+              <m:mo>∫</m:mo>
+              <m:mi>y</m:mi>
+            </m:msub>
+            <m:mi>y</m:mi>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>|</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>S</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mi>d</m:mi>
+            <m:mi>y</m:mi>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id270125">The procedure that we've outlined here can be thought of as doing “fully Bayesian”
+prediction, where our prediction is computed by taking an average with respect
+to the posterior <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>)</m:mo></m:mrow></m:math> over <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>.
+Unfortunately, in general it is computationally very difficult to compute this
+posterior distribution. This is because it requires taking
+integrals over the (usually high-dimensional) <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> as in <link target-id="uid21"/>,
+and this typically cannot be done in closed-form.</para><para id="id270177">Thus, in practice we will instead approximate the
+posterior distribution for <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>.
+One common approximation is to replace our posterior distribution for <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>
+(as in <link target-id="uid23"/>) with a single point estimate. The <emphasis effect="bold">MAP (maximum a posteriori)</emphasis>
+estimate for <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> is given by</para><equation id="uid25">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>θ</m:mi>
+              <m:mi> MAP </m:mi>
+            </m:msub>
+            <m:mo>=</m:mo>
+            <m:mo form="prefix">arg</m:mo>
+            <m:munder>
+              <m:mo movablelimits="true" form="prefix">max</m:mo>
+              <m:mi>θ</m:mi>
+            </m:munder>
+            <m:munderover>
+              <m:mo>∏</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>y</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>|</m:mo>
+              <m:msup>
+                <m:mi>x</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>,</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id270328">Note that this is the same formulas as for the ML (maximum likelihood) estimate for <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>,
+except for the prior <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> term at the end.</para>
+      <para id="id270361">In practical applications, a common choice for the prior <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> is to assume
+that <m:math overflow="scroll"><m:mrow><m:mi>θ</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:msup><m:mi>τ</m:mi><m:mn>2</m:mn></m:msup><m:mi>I</m:mi><m:mo>)</m:mo></m:mrow></m:math>. Using this choice of prior, the
+fitted parameters <m:math overflow="scroll"><m:msub><m:mi>θ</m:mi><m:mi> MAP </m:mi></m:msub></m:math> will have smaller norm than that
+selected by maximum likelihood.
+(See Problem Set #3.)
+In practice, this causes the Bayesian MAP estimate to be less
+susceptible to overfitting than the ML estimate of the parameters. For example,
+Bayesian logistic regression turns out to be an effective algorithm for
+text classification, even though in text classification we usually have <m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>≫</m:mo><m:mi>m</m:mi></m:mrow></m:math>.</para>
+    </section>
+  </content>
+</document>

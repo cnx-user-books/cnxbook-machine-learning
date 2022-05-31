@@ -1,0 +1,2790 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 8 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45901</md:content-id>
+  <md:title>Machine Learning Lecture 8 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>96fc0501-6ebd-4dd6-8d6f-f1f3d28d3e5f</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>The EM algorithm</title>
+      <para id="id116727">In the previous set of notes, we talked about the EM algorithm
+as applied to fitting a mixture of Gaussians. In this set of notes,
+we give a broader view of the EM algorithm, and show how it can
+be applied to a large family of estimation problems
+with latent variables. We begin our discussion with a very useful result
+called <emphasis effect="bold">Jensen's inequality</emphasis></para>
+    </section>
+    <section id="cid2">
+      <title>Jensen's inequality</title>
+      <para id="id116746">Let <m:math overflow="scroll"><m:mi>f</m:mi></m:math> be a function whose domain is the set of real numbers.
+Recall that <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is a convex function if <m:math overflow="scroll"><m:mrow><m:msup><m:mi>f</m:mi><m:mrow><m:mo>'</m:mo><m:mo>'</m:mo></m:mrow></m:msup><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>≥</m:mo><m:mn>0</m:mn></m:mrow></m:math> (for all <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∈</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math>).
+In the case of <m:math overflow="scroll"><m:mi>f</m:mi></m:math> taking vector-valued inputs, this is generalized to
+the condition that its hessian <m:math overflow="scroll"><m:mi>H</m:mi></m:math> is positive semi-definite (<m:math overflow="scroll"><m:mrow><m:mi>H</m:mi><m:mo>≥</m:mo><m:mn>0</m:mn></m:mrow></m:math>).
+If <m:math overflow="scroll"><m:mrow><m:msup><m:mi>f</m:mi><m:mrow><m:mo>'</m:mo><m:mo>'</m:mo></m:mrow></m:msup><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>&gt;</m:mo><m:mn>0</m:mn></m:mrow></m:math> for all <m:math overflow="scroll"><m:mi>x</m:mi></m:math>, then we say <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is <emphasis effect="bold">strictly</emphasis> convex
+(in the vector-valued case, the corresponding statement is that <m:math overflow="scroll"><m:mi>H</m:mi></m:math> must
+be positive definite, written <m:math overflow="scroll"><m:mrow><m:mi>H</m:mi><m:mo>&gt;</m:mo><m:mn>0</m:mn></m:mrow></m:math>). Jensen's inequality
+can then be stated as follows:</para>
+      <para id="id117091"><emphasis effect="bold">Theorem.</emphasis> Let <m:math overflow="scroll"><m:mi>f</m:mi></m:math> be a convex function, and let <m:math overflow="scroll"><m:mi>X</m:mi></m:math> be a random variable.
+Then:</para>
+      <equation id="id117118">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi mathvariant="normal">E</m:mi>
+            <m:mo>[</m:mo>
+            <m:mi>f</m:mi>
+            <m:mo>(</m:mo>
+            <m:mi>X</m:mi>
+            <m:mo>)</m:mo>
+            <m:mo>]</m:mo>
+            <m:mo>≥</m:mo>
+            <m:mi>f</m:mi>
+            <m:mo>(</m:mo>
+            <m:mi mathvariant="normal">E</m:mi>
+            <m:mi>X</m:mi>
+            <m:mo>)</m:mo>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id117161">Moreover, if <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is strictly convex, then
+<m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>X</m:mi><m:mo>)</m:mo><m:mo>]</m:mo><m:mo>=</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mi>X</m:mi><m:mo>)</m:mo></m:mrow></m:math> holds true if and only if <m:math overflow="scroll"><m:mrow><m:mi>X</m:mi><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>X</m:mi><m:mo>]</m:mo></m:mrow></m:math> with
+probability 1 (i.e., if <m:math overflow="scroll"><m:mi>X</m:mi></m:math> is a constant).</para>
+      <para id="id117242">Recall our convention of occasionally dropping the parentheses when
+writing expectations, so in the theorem above, <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mi>X</m:mi><m:mo>)</m:mo><m:mo>=</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>X</m:mi><m:mo>]</m:mo><m:mo>)</m:mo></m:mrow></m:math>.</para>
+      <para id="id117287">For an interpretation of the theorem, consider the figure below.</para>
+      <figure id="uid1"><media id="uid1_media" alt="representation of the theorem">
+          <image mime-type="image/png" src="../../media/jensen.png" id="uid1_onlineimage" width="425"><!-- NOTE: attribute width changes image size online (pixels). original width is 425. --></image>
+          <image mime-type="application/postscript" for="pdf" src="../../media/jensen.eps" id="uid1_printimage"/>
+        </media>
+      </figure><para id="id117299">Here, <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is a convex function shown by the solid line. Also, <m:math overflow="scroll"><m:mi>X</m:mi></m:math>
+is a random variable that has a 0.5 chance of taking the value <m:math overflow="scroll"><m:mi>a</m:mi></m:math>,
+and a 0.5 chance of taking the value <m:math overflow="scroll"><m:mi>b</m:mi></m:math> (indicated on the <m:math overflow="scroll"><m:mi>x</m:mi></m:math>-axis).
+Thus, the expected value of <m:math overflow="scroll"><m:mi>X</m:mi></m:math> is given by the midpoint
+between <m:math overflow="scroll"><m:mi>a</m:mi></m:math> and <m:math overflow="scroll"><m:mi>b</m:mi></m:math>.</para>
+      <para id="id117366">We also see the values <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>b</m:mi><m:mo>)</m:mo></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>X</m:mi><m:mo>]</m:mo><m:mo>)</m:mo></m:mrow></m:math> indicated
+on the <m:math overflow="scroll"><m:mi>y</m:mi></m:math>-axis. Moreover, the value <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>X</m:mi><m:mo>)</m:mo><m:mo>]</m:mo></m:mrow></m:math> is now
+the midpoint on the <m:math overflow="scroll"><m:mi>y</m:mi></m:math>-axis between <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>b</m:mi><m:mo>)</m:mo></m:mrow></m:math>. From
+our example, we see that because <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is convex, it must be
+the case that <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>X</m:mi><m:mo>)</m:mo><m:mo>]</m:mo><m:mo>≥</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mi>X</m:mi><m:mo>)</m:mo></m:mrow></m:math>.</para>
+      <para id="id117541">Incidentally, quite a lot of people have trouble remembering which
+way the inequality goes, and remembering a picture like this is
+a good way to quickly figure out the answer.</para>
+      <para id="id117546"><emphasis effect="bold">Remark.</emphasis> Recall that <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is [strictly] concave if and only if <m:math overflow="scroll"><m:mrow><m:mo>-</m:mo><m:mi>f</m:mi></m:mrow></m:math> is
+[strictly] convex (i.e., <m:math overflow="scroll"><m:mrow><m:msup><m:mi>f</m:mi><m:mrow><m:mo>'</m:mo><m:mo>'</m:mo></m:mrow></m:msup><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>≤</m:mo><m:mn>0</m:mn></m:mrow></m:math> or <m:math overflow="scroll"><m:mrow><m:mi>H</m:mi><m:mo>≤</m:mo><m:mn>0</m:mn></m:mrow></m:math>). Jensen's
+inequality also holds for concave functions <m:math overflow="scroll"><m:mi>f</m:mi></m:math>, but with the direction
+of all the inequalities reversed (<m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>X</m:mi><m:mo>)</m:mo><m:mo>]</m:mo><m:mo>≤</m:mo><m:mi>f</m:mi><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mi>X</m:mi><m:mo>)</m:mo></m:mrow></m:math>, etc.).</para>
+    </section>
+    <section id="cid3">
+      <title>The EM algorithm</title>
+      <para id="id117674">Suppose we have an estimation problem in which
+we have a training set <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>m</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>}</m:mo></m:mrow></m:math> consisting
+of <m:math overflow="scroll"><m:mi>m</m:mi></m:math> independent examples. We wish to fit the parameters
+of a model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow></m:math> to the data, where the likelihood is given by</para>
+      <equation id="id117749">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi>ℓ</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mi>θ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>z</m:mi>
+                  </m:munder>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:mi>z</m:mi>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id117875">But, explicitly finding the maximum likelihood estimates of the parameters
+<m:math overflow="scroll"><m:mi>θ</m:mi></m:math> may be hard. Here, the <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s are the latent random variables;
+and it is often the case that if the <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s were observed, then
+maximum likelihood estimation would be easy.</para>
+      <para id="id117927">In such a setting, the EM algorithm gives an efficient method for
+maximum likelihood estimation. Maximizing <m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math>
+explicitly might be difficult, and our strategy will be to instead
+repeatedly
+construct a lower-bound on <m:math overflow="scroll"><m:mi>ℓ</m:mi></m:math> (E-step), and then optimize
+that lower-bound (M-step).</para>
+      <para id="id117956">For each <m:math overflow="scroll"><m:mi>i</m:mi></m:math>, let <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math> be some distribution
+over the <m:math overflow="scroll"><m:mi>z</m:mi></m:math>'s (<m:math overflow="scroll"><m:mrow><m:msub><m:mo>∑</m:mo><m:mi>z</m:mi></m:msub><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow><m:mo>≥</m:mo><m:mn>0</m:mn></m:mrow></m:math>).
+Consider the following:<footnote id="uid2">If <m:math overflow="scroll"><m:mi>z</m:mi></m:math> were continuous, then <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>
+would be a density, and the summations over <m:math overflow="scroll"><m:mi>z</m:mi></m:math> in our discussion
+are replaced with integrals over <m:math overflow="scroll"><m:mi>z</m:mi></m:math>.</footnote></para>
+      <equation id="uid3"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>i</m:mi>
+                  </m:munder>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>i</m:mi>
+                  </m:munder>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:munder>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>,</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+         
+          </m:mtable>
+        </m:math>
+      </equation><equation id="eip-718"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>i</m:mi>
+                  </m:munder>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:munder>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>θ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+    
+          </m:mtable>
+        </m:math>
+      </equation><equation id="eip-298"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>≥</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>i</m:mi>
+                  </m:munder>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:munder>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>θ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id118503">The last step of this derivation used Jensen's inequality. Specifically,
+<m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo><m:mo>=</m:mo><m:mo form="prefix">log</m:mo><m:mi>x</m:mi></m:mrow></m:math> is a concave function, since <m:math overflow="scroll"><m:mrow><m:msup><m:mi>f</m:mi><m:mrow><m:mo>'</m:mo><m:mo>'</m:mo></m:mrow></m:msup><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mo>-</m:mo><m:mn>1</m:mn><m:mo>/</m:mo><m:msup><m:mi>x</m:mi><m:mn>2</m:mn></m:msup><m:mo>&lt;</m:mo><m:mn>0</m:mn></m:mrow></m:math> over its
+domain <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mo>+</m:mo></m:msup></m:mrow></m:math>. Also, the term</para>
+      <equation id="id118604">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+            </m:munder>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mfrac>
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>,</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>;</m:mo>
+                  <m:mi>θ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mrow>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mfrac>
+            </m:mfenced>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id118733">in the summation is just an expectation of the quantity
+<m:math overflow="scroll"><m:mfenced separators="" open="[" close="]"><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow><m:mo>/</m:mo><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:mfenced></m:math> with respect to <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>
+drawn according to the distribution given by <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>.
+By Jensen's inequality, we have</para>
+      <equation id="id118855">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>f</m:mi>
+            <m:mfenced separators="" open="(" close=")">
+              <m:msub>
+                <m:mi mathvariant="normal">E</m:mi>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>∼</m:mo>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                </m:mrow>
+              </m:msub>
+              <m:mfenced separators="" open="[" close="]">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>,</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:msub>
+                      <m:mi>Q</m:mi>
+                      <m:mi>i</m:mi>
+                    </m:msub>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mfenced>
+            </m:mfenced>
+            <m:mo>≥</m:mo>
+            <m:msub>
+              <m:mi mathvariant="normal">E</m:mi>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>∼</m:mo>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+              </m:mrow>
+            </m:msub>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mi>f</m:mi>
+              <m:mfenced separators="" open="(" close=")">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>,</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:msub>
+                      <m:mi>Q</m:mi>
+                      <m:mi>i</m:mi>
+                    </m:msub>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mfenced>
+            </m:mfenced>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id119101">where the “<m:math overflow="scroll"><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∼</m:mo><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:mrow></m:math>” subscripts above indicate that the expectations
+are with respect to <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> drawn from <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>.
+This allowed us to go from <link target-id="uid3"/> to <link target-id="eip-298"/>.</para><para id="id119180">Now, for <emphasis effect="italics">any</emphasis> set of distributions <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>, the formula <link target-id="eip-298"/>
+gives a lower-bound on <m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math>.
+There're many possible choices for the <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>'s. Which should we choose?
+Well, if we have some current guess <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> of the parameters, it seems
+natural to try to make the lower-bound tight at that value of <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>.
+I.e., we'll make the inequality above hold with equality at our
+particular value of <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>. (We'll see later how this enables us
+to prove that <m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> increases monotonically with successsive
+iterations of EM.)</para><para id="id119283">To make the bound tight for a particular value of <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>, we need
+for the step involving Jensen's inequality in
+our derivation above to hold with equality. For this to be true,
+we know it is sufficient that that the expectation
+be taken over a “constant”-valued random variable. I.e., we require
+that</para>
+      <equation id="id119300">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>,</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>;</m:mo>
+                <m:mi>θ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>=</m:mo>
+            <m:mi>c</m:mi>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id119382">for some constant <m:math overflow="scroll"><m:mi>c</m:mi></m:math> that does not depend on <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>. This is
+easily accomplished by choosing</para>
+      <equation id="id119416">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>∝</m:mo>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>x</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>,</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>;</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id119496">Actually, since we know <m:math overflow="scroll"><m:mrow><m:msub><m:mo>∑</m:mo><m:mi>z</m:mi></m:msub><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> (because it is a distribution),
+this further tells us that</para>
+      <equation id="id119548">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>,</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:msub>
+                      <m:mo>∑</m:mo>
+                      <m:mi>z</m:mi>
+                    </m:msub>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:mi>z</m:mi>
+                      <m:mo>;</m:mo>
+                      <m:mi>θ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>,</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>θ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>|</m:mo>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>;</m:mo>
+                  <m:mi>θ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id119800">Thus, we simply set the <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>'s to be the posterior distribution of
+the <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s given <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> and the setting of the parameters <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>.</para>
+      <para id="id119869">Now, for this choice of the <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>'s, Equation <link target-id="eip-298"/> gives
+a lower-bound on the loglikelihood <m:math overflow="scroll"><m:mi>ℓ</m:mi></m:math> that we're trying to maximize.
+This is the E-step. In the M-step of the algorithm, we then maximize
+our formula in Equation <link target-id="eip-298"/> with respect to
+the parameters to obtain a new setting of the <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>'s. Repeatedly
+carrying out these two steps gives us the EM algorithm, which is as follows:</para><list id="id119913" display="block" list-type="bulleted">
+        <item id="uid4"><label/>Repeat until convergence <m:math overflow="scroll"><m:mo>{</m:mo></m:math><list id="id119938" display="block" list-type="bulleted"><item id="uid5"><label/>(E-step) For each <m:math overflow="scroll"><m:mi>i</m:mi></m:math>, set
+<equation id="id119963"><m:math overflow="scroll" mode="display"><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>:</m:mo><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow><m:mo>.</m:mo></m:mrow></m:math></equation></item><item id="uid6"><label/>(M-step) Set
+<equation id="id120057"><m:math overflow="scroll" mode="display"><m:mrow><m:mi>θ</m:mi><m:mo>:</m:mo><m:mo>=</m:mo><m:mo form="prefix">arg</m:mo><m:munder><m:mo movablelimits="true" form="prefix">max</m:mo><m:mi>θ</m:mi></m:munder><m:munder><m:mo>∑</m:mo><m:mi>i</m:mi></m:munder><m:munder><m:mo>∑</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:munder><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo form="prefix">log</m:mo><m:mfrac><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:mfrac><m:mo>.</m:mo></m:mrow></m:math></equation></item></list></item>
+        <item id="uid7">
+          <label/>
+          <m:math overflow="scroll">
+            <m:mo>}</m:mo>
+          </m:math>
+        </item>
+      </list>
+      <para id="id120239">How will we know if this algorithm will converge? Well, suppose
+<m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> and <m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup></m:math> are the parameters from two
+successive iterations of EM. We will now prove that
+<m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>≤</m:mo><m:mi>ℓ</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, which shows
+EM always monotonically improves the log-likelihood.
+The key to showing this result lies in our choice of the <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>'s.
+Specifically, on the iteration of EM in which the parameters
+had started out as <m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>, we would have chosen
+<m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>Q</m:mi><m:mi>i</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>:</m:mo><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>. We saw
+earlier that this choice ensures that Jensen's inequality,
+as applied to get <link target-id="eip-298"/>, holds with equality,
+and hence</para><equation id="id120479">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>ℓ</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>θ</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>t</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mi>i</m:mi>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+            </m:munder>
+            <m:msubsup>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>t</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msubsup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo form="prefix">log</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>,</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>;</m:mo>
+                <m:msup>
+                  <m:mi>θ</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>t</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:msubsup>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>t</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msubsup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id120666">The parameters <m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup></m:math> are then obtained by maximizing
+the right hand side of the equation above. Thus,
+</para>
+      <equation id="uid8"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi>ℓ</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>θ</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>t</m:mi>
+                      <m:mo>+</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>≥</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>i</m:mi>
+                  </m:munder>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:munder>
+                  <m:msubsup>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>t</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:msup>
+                        <m:mi>θ</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>t</m:mi>
+                          <m:mo>+</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>t</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+        
+          </m:mtable>
+        </m:math>
+      </equation><equation id="eip-407"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+  
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>≥</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:mi>i</m:mi>
+                  </m:munder>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:munder>
+                  <m:msubsup>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>t</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:msup>
+                        <m:mi>θ</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>t</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>t</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+       
+          </m:mtable>
+        </m:math>
+      </equation><equation id="eip-484"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+   
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>ℓ</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>θ</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>t</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id121106">This first inequality comes from the fact that</para>
+      <equation id="id121112">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>ℓ</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>≥</m:mo>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mi>i</m:mi>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+            </m:munder>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo form="prefix">log</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>,</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>;</m:mo>
+                <m:mi>θ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id121259">holds for any values of <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>, and in particular holds for
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:msubsup><m:mi>Q</m:mi><m:mi>i</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:mi>θ</m:mi><m:mo>=</m:mo><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>.
+To get Equation <link target-id="uid8"/>, we used the fact that
+<m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup></m:math> is chosen explicitly to be</para>
+      <equation id="id121381">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mo form="prefix">arg</m:mo>
+            <m:munder>
+              <m:mo movablelimits="true" form="prefix">max</m:mo>
+              <m:mi>θ</m:mi>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mi>i</m:mi>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+            </m:munder>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo form="prefix">log</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>,</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>;</m:mo>
+                <m:mi>θ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id121533">and thus this formula evaluated at <m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup></m:math> must be equal to or larger
+than the same formula evaluated at <m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>. Finally, the step
+used to get <link target-id="eip-484"/> was shown earlier, and follows from
+<m:math overflow="scroll"><m:msubsup><m:mi>Q</m:mi><m:mi>i</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> having been chosen to make Jensen's inequality hold with
+equality at <m:math overflow="scroll"><m:msup><m:mi>θ</m:mi><m:mrow><m:mo>(</m:mo><m:mi>t</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>.</para><para id="id121629">Hence, EM causes the likelihood to converge monotonically. In our description
+of the EM algorithm, we said we'd run it until convergence. Given the result
+that we just showed, one reasonable convergence test would be to check if
+the increase in
+<m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> between successive iterations is smaller than some
+tolerance parameter, and to declare convergence if EM is improving
+<m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> too slowly.</para>
+      <para id="id121668"><emphasis effect="bold">Remark.</emphasis> If we define</para>
+      <equation id="id121681">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>J</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>Q</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>θ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mi>i</m:mi>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+            </m:munder>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo form="prefix">log</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>,</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>;</m:mo>
+                <m:mi>θ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id121834">then we know <m:math overflow="scroll"><m:mrow><m:mi>ℓ</m:mi><m:mo>(</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo><m:mo>≥</m:mo><m:mi>J</m:mi><m:mo>(</m:mo><m:mi>Q</m:mi><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> from our previous derivation.
+The EM can also be viewed a coordinate ascent on <m:math overflow="scroll"><m:mi>J</m:mi></m:math>, in which the E-step
+maximizes it with respect to <m:math overflow="scroll"><m:mi>Q</m:mi></m:math> (check this yourself), and the M-step
+maximizes it with respect to <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>.</para>
+    </section>
+    <section id="cid4">
+      <title>Mixture of Gaussians revisited</title>
+      <para id="id121910">Armed with our general definition of the EM algorithm, let's go back
+to our old
+example of fitting the parameters <m:math overflow="scroll"><m:mi>Φ</m:mi></m:math>, <m:math overflow="scroll"><m:mi>μ</m:mi></m:math> and <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> in
+a mixture of Gaussians. For the sake of brevity, we carry out
+the derivations for the M-step updates only for <m:math overflow="scroll"><m:mi>Φ</m:mi></m:math> and <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mi>j</m:mi></m:msub></m:math>,
+and leave the updates for <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mi>j</m:mi></m:msub></m:math> as an exercise for the reader.</para>
+      <para id="id121981">The E-step is easy. Following our algorithm derivation above,
+we simply calculate</para>
+      <equation id="id121985">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msubsup>
+              <m:mi>w</m:mi>
+              <m:mi>j</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msubsup>
+            <m:mo>=</m:mo>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>=</m:mo>
+              <m:mi>j</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mi>P</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>=</m:mo>
+              <m:mi>j</m:mi>
+              <m:mo>|</m:mo>
+              <m:msup>
+                <m:mi>x</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>;</m:mo>
+              <m:mi>Φ</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>μ</m:mi>
+              <m:mo>,</m:mo>
+              <m:mo>Σ</m:mo>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id122099">Here, “<m:math overflow="scroll"><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mi>j</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>” denotes the probability of <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> taking the
+value <m:math overflow="scroll"><m:mi>j</m:mi></m:math>
+under the distribution <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>.</para>
+      <para id="id122186">Next, in the M-step, we need to maximize, with respect to our parameters
+<m:math overflow="scroll"><m:mrow><m:mi>Φ</m:mi><m:mo>,</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mo>Σ</m:mo></m:mrow></m:math>, the quantity</para>
+      <equation id="id122208"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mrow/>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:munder>
+                    <m:mo>∑</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:munder>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>Φ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mo>Σ</m:mo>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mo>=</m:mo>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>j</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>k</m:mi>
+                  </m:munderover>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>=</m:mo>
+                    <m:mi>j</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>|</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mi>j</m:mi>
+                        <m:mo>;</m:mo>
+                        <m:mi>μ</m:mi>
+                        <m:mo>,</m:mo>
+                        <m:mo>Σ</m:mo>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mi>j</m:mi>
+                        <m:mo>;</m:mo>
+                        <m:mi>Φ</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mi>j</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mo>=</m:mo>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>j</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>k</m:mi>
+                  </m:munderover>
+                  <m:msubsup>
+                    <m:mi>w</m:mi>
+                    <m:mi>j</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mfrac>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:msup>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mn>2</m:mn>
+                              <m:mi>π</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                            <m:mrow>
+                              <m:mi>n</m:mi>
+                              <m:mo>/</m:mo>
+                              <m:mn>2</m:mn>
+                            </m:mrow>
+                          </m:msup>
+                          <m:msup>
+                            <m:mrow>
+                              <m:mo>|</m:mo>
+                              <m:msub>
+                                <m:mo>Σ</m:mo>
+                                <m:mi>j</m:mi>
+                              </m:msub>
+                              <m:mo>|</m:mo>
+                            </m:mrow>
+                            <m:mrow>
+                              <m:mn>1</m:mn>
+                              <m:mo>/</m:mo>
+                              <m:mn>2</m:mn>
+                            </m:mrow>
+                          </m:msup>
+                        </m:mrow>
+                      </m:mfrac>
+                      <m:mo form="prefix">exp</m:mo>
+                      <m:mfenced separators="" open="(" close=")">
+                        <m:mo>-</m:mo>
+                        <m:mfrac>
+                          <m:mn>1</m:mn>
+                          <m:mn>2</m:mn>
+                        </m:mfrac>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:msup>
+                              <m:mi>x</m:mi>
+                              <m:mrow>
+                                <m:mo>(</m:mo>
+                                <m:mi>i</m:mi>
+                                <m:mo>)</m:mo>
+                              </m:mrow>
+                            </m:msup>
+                            <m:mo>-</m:mo>
+                            <m:msub>
+                              <m:mi>μ</m:mi>
+                              <m:mi>j</m:mi>
+                            </m:msub>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                          <m:mi>T</m:mi>
+                        </m:msup>
+                        <m:msubsup>
+                          <m:mo>Σ</m:mo>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>-</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msup>
+                            <m:mi>x</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>-</m:mo>
+                          <m:msub>
+                            <m:mi>μ</m:mi>
+                            <m:mi>j</m:mi>
+                          </m:msub>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:mfenced>
+                      <m:mo>·</m:mo>
+                      <m:msub>
+                        <m:mi>Φ</m:mi>
+                        <m:mi>j</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                    <m:msubsup>
+                      <m:mi>w</m:mi>
+                      <m:mi>j</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id122814">Let's maximize this with respect to <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mi>l</m:mi></m:msub></m:math>. If we take the
+derivative with respect to <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mi>l</m:mi></m:msub></m:math>, we find</para>
+      <equation id="id122850"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  
+                  <m:mrow/>
+                  <m:msub>
+                    <m:mi>∇</m:mi>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mi>l</m:mi>
+                    </m:msub>
+                  </m:msub>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>j</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>k</m:mi>
+                  </m:munderover>
+                  <m:msubsup>
+                    <m:mi>w</m:mi>
+                    <m:mi>j</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mo form="prefix">log</m:mo>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mfrac>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:msup>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mn>2</m:mn>
+                              <m:mi>π</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                            <m:mrow>
+                              <m:mi>n</m:mi>
+                              <m:mo>/</m:mo>
+                              <m:mn>2</m:mn>
+                            </m:mrow>
+                          </m:msup>
+                          <m:msup>
+                            <m:mrow>
+                              <m:mo>|</m:mo>
+                              <m:msub>
+                                <m:mo>Σ</m:mo>
+                                <m:mi>j</m:mi>
+                              </m:msub>
+                              <m:mo>|</m:mo>
+                            </m:mrow>
+                            <m:mrow>
+                              <m:mn>1</m:mn>
+                              <m:mo>/</m:mo>
+                              <m:mn>2</m:mn>
+                            </m:mrow>
+                          </m:msup>
+                        </m:mrow>
+                      </m:mfrac>
+                      <m:mo form="prefix">exp</m:mo>
+                      <m:mfenced separators="" open="(" close=")">
+                        <m:mo>-</m:mo>
+                        <m:mfrac>
+                          <m:mn>1</m:mn>
+                          <m:mn>2</m:mn>
+                        </m:mfrac>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:msup>
+                              <m:mi>x</m:mi>
+                              <m:mrow>
+                                <m:mo>(</m:mo>
+                                <m:mi>i</m:mi>
+                                <m:mo>)</m:mo>
+                              </m:mrow>
+                            </m:msup>
+                            <m:mo>-</m:mo>
+                            <m:msub>
+                              <m:mi>μ</m:mi>
+                              <m:mi>j</m:mi>
+                            </m:msub>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                          <m:mi>T</m:mi>
+                        </m:msup>
+                        <m:msubsup>
+                          <m:mo>Σ</m:mo>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>-</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msup>
+                            <m:mi>x</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>-</m:mo>
+                          <m:msub>
+                            <m:mi>μ</m:mi>
+                            <m:mi>j</m:mi>
+                          </m:msub>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:mfenced>
+                      <m:mo>·</m:mo>
+                      <m:msub>
+                        <m:mi>Φ</m:mi>
+                        <m:mi>j</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                    <m:msubsup>
+                      <m:mi>w</m:mi>
+                      <m:mi>j</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                 
+                  <m:mrow/>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mo>-</m:mo>
+                  <m:msub>
+                    <m:mi>∇</m:mi>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mi>l</m:mi>
+                    </m:msub>
+                  </m:msub>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>j</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>k</m:mi>
+                  </m:munderover>
+                  <m:msubsup>
+                    <m:mi>w</m:mi>
+                    <m:mi>j</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mfrac>
+                    <m:mn>1</m:mn>
+                    <m:mn>2</m:mn>
+                  </m:mfrac>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:msub>
+                        <m:mi>μ</m:mi>
+                        <m:mi>j</m:mi>
+                      </m:msub>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:msubsup>
+                    <m:mo>Σ</m:mo>
+                    <m:mi>j</m:mi>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>-</m:mo>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mi>j</m:mi>
+                    </m:msub>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mfrac>
+                    <m:mn>1</m:mn>
+                    <m:mn>2</m:mn>
+                  </m:mfrac>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msubsup>
+                    <m:mi>w</m:mi>
+                    <m:mi>l</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:msub>
+                    <m:mi>∇</m:mi>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mi>l</m:mi>
+                    </m:msub>
+                  </m:msub>
+                  <m:mn>2</m:mn>
+                  <m:msubsup>
+                    <m:mi>μ</m:mi>
+                    <m:mi>l</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msubsup>
+                  <m:msubsup>
+                    <m:mo>Σ</m:mo>
+                    <m:mi>l</m:mi>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>-</m:mo>
+                  <m:msubsup>
+                    <m:mi>μ</m:mi>
+                    <m:mi>l</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msubsup>
+                  <m:msubsup>
+                    <m:mo>Σ</m:mo>
+                    <m:mi>l</m:mi>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:msub>
+                    <m:mi>μ</m:mi>
+                    <m:mi>l</m:mi>
+                  </m:msub>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msubsup>
+                    <m:mi>w</m:mi>
+                    <m:mi>l</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mfenced separators="" open="(" close=")">
+                    <m:msubsup>
+                      <m:mo>Σ</m:mo>
+                      <m:mi>l</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msubsup>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>-</m:mo>
+                    <m:msubsup>
+                      <m:mo>Σ</m:mo>
+                      <m:mi>l</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msubsup>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mi>l</m:mi>
+                    </m:msub>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id123539">Setting this to zero and solving for <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mi>l</m:mi></m:msub></m:math> therefore yields the
+update rule
+</para>
+      <equation id="id123575">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>μ</m:mi>
+              <m:mi>l</m:mi>
+            </m:msub>
+            <m:mo>:</m:mo>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:msubsup>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>i</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:msubsup>
+                <m:msubsup>
+                  <m:mi>w</m:mi>
+                  <m:mi>l</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msubsup>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+              <m:mrow>
+                <m:msubsup>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>i</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:msubsup>
+                <m:msubsup>
+                  <m:mi>w</m:mi>
+                  <m:mi>l</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msubsup>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id123680">which was what we had in the previous set of notes.</para>
+      <para id="id123686">Let's do one more example, and derive the M-step update
+for the parameters <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>. Grouping together only the terms that depend
+on <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>, we find that we need to maximize</para>
+      <equation id="id123720">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>j</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>k</m:mi>
+            </m:munderover>
+            <m:msubsup>
+              <m:mi>w</m:mi>
+              <m:mi>j</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msubsup>
+            <m:mo form="prefix">log</m:mo>
+            <m:msub>
+              <m:mi>Φ</m:mi>
+              <m:mi>j</m:mi>
+            </m:msub>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id123792">However, there is an additional constraint that the <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>'s sum to 1,
+since they represent the probabilities <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mi>j</m:mi><m:mo>;</m:mo><m:mi>Φ</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+To deal with the constraint that <m:math overflow="scroll"><m:mrow><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>j</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>k</m:mi></m:msubsup><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>, we construct
+the Lagrangian</para>
+      <equation id="id123896">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi mathvariant="script">L</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>Φ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>j</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>k</m:mi>
+            </m:munderover>
+            <m:msubsup>
+              <m:mi>w</m:mi>
+              <m:mi>j</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msubsup>
+            <m:mo form="prefix">log</m:mo>
+            <m:msub>
+              <m:mi>Φ</m:mi>
+              <m:mi>j</m:mi>
+            </m:msub>
+            <m:mo>+</m:mo>
+            <m:mi>β</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:munderover>
+                <m:mo>∑</m:mo>
+                <m:mrow>
+                  <m:mi>j</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+                <m:mi>k</m:mi>
+              </m:munderover>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mi>j</m:mi>
+              </m:msub>
+              <m:mo>-</m:mo>
+              <m:mn>1</m:mn>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id124020">where <m:math overflow="scroll"><m:mi>β</m:mi></m:math> is the Lagrange multiplier.<footnote id="uid9">We don't need to worry about
+the constraint that <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>≥</m:mo><m:mn>0</m:mn></m:mrow></m:math>, because as we'll shortly see, the
+solution we'll find from this derivation will automatically satisfy
+that anyway.</footnote>
+Taking derivatives, we find</para>
+      <equation id="id124067">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mfrac>
+              <m:mi>∂</m:mi>
+              <m:mrow>
+                <m:mi>∂</m:mi>
+                <m:msub>
+                  <m:mi>Φ</m:mi>
+                  <m:mi>j</m:mi>
+                </m:msub>
+              </m:mrow>
+            </m:mfrac>
+            <m:mi mathvariant="script">L</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>Φ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mfrac>
+              <m:msubsup>
+                <m:mi>w</m:mi>
+                <m:mi>j</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msubsup>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mi>j</m:mi>
+              </m:msub>
+            </m:mfrac>
+            <m:mo>+</m:mo>
+            <m:mn>1</m:mn>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id124153">Setting this to zero and solving, we get</para>
+      <equation id="id124159">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>Φ</m:mi>
+              <m:mi>j</m:mi>
+            </m:msub>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:msubsup>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>i</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:msubsup>
+                <m:msubsup>
+                  <m:mi>w</m:mi>
+                  <m:mi>j</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msubsup>
+              </m:mrow>
+              <m:mrow>
+                <m:mo>-</m:mo>
+                <m:mi>β</m:mi>
+              </m:mrow>
+            </m:mfrac>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id124220">i.e., <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>∝</m:mo><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msubsup><m:mi>w</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:mrow></m:math>. Using the constraint that
+<m:math overflow="scroll"><m:mrow><m:msub><m:mo>∑</m:mo><m:mi>j</m:mi></m:msub><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>, we easily find that
+<m:math overflow="scroll"><m:mrow><m:mo>-</m:mo><m:mi>β</m:mi><m:mo>=</m:mo><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>j</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>k</m:mi></m:msubsup><m:msubsup><m:mi>w</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>=</m:mo><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:mn>1</m:mn><m:mo>=</m:mo><m:mi>m</m:mi></m:mrow></m:math>.
+(This used the fact that <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>w</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>=</m:mo><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mi>j</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, and
+since probabilities sum to 1, <m:math overflow="scroll"><m:mrow><m:msub><m:mo>∑</m:mo><m:mi>j</m:mi></m:msub><m:msubsup><m:mi>w</m:mi><m:mi>j</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>.) We therefore have
+our M-step updates for the parameters <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>:</para><equation id="id124498">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>Φ</m:mi>
+              <m:mi>j</m:mi>
+            </m:msub>
+            <m:mo>:</m:mo>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mi>m</m:mi>
+            </m:mfrac>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:msubsup>
+              <m:mi>w</m:mi>
+              <m:mi>j</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msubsup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id124560">The derivation for the M-step updates to <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mi>j</m:mi></m:msub></m:math> are also entirely
+straightforward.</para>
+    </section>
+  </content>
+</document>

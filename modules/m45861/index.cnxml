@@ -1,0 +1,3646 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 2 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45861</md:content-id>
+  <md:title>Machine Learning Lecture 2 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>2ce817a7-2438-4dc3-a2fe-9f1b9c69f5e9</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>Generative Learning algorithms</title>
+      <para id="id62572">So far, we've mainly been talking about learning algorithms that model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>;</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math>, the
+conditional distribution of <m:math overflow="scroll"><m:mi>y</m:mi></m:math> given <m:math overflow="scroll"><m:mi>x</m:mi></m:math>. For instance, logistic regression modeled
+<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>;</m:mo><m:mi>θ</m:mi><m:mo>)</m:mo></m:mrow></m:math> as <m:math overflow="scroll"><m:mrow><m:msub><m:mi>h</m:mi><m:mi>θ</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>g</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>θ</m:mi><m:mi>T</m:mi></m:msup><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> where <m:math overflow="scroll"><m:mi>g</m:mi></m:math> is the sigmoid function. In
+these notes, we'll talk about a different type of learning algorithm.</para>
+      <para id="id62868">Consider a classification problem in which we want to learn to distinguish between elephants (<m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>)
+and dogs (<m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>), based on some features of an animal. Given a training
+set, an algorithm like logistic regression or the perceptron algorithm (basically) tries to find a straight line—that is, a decision boundary—that separates the elephants and
+dogs. Then, to classify a new animal as either an elephant or a dog, it checks on which side of the decision boundary it falls, and makes its prediction accordingly.</para>
+      <para id="id62905">Here's a different approach. First, looking at elephants, we can build a model of what
+elephants look like. Then, looking at dogs, we can build a separate model of what
+dogs look like. Finally, to classify a new animal, we can match the new animal against the
+elephant model, and match it against the dog model, to see whether the new animal looks more
+like the elephants or more like the dogs we had seen in the training set.</para>
+      <para id="id62912">Algorithms that try to learn <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math> directly (such as logistic regression), or algorithms
+that try to learn mappings directly from the space of inputs <m:math overflow="scroll"><m:mi mathvariant="script">X</m:mi></m:math> to the labels <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>}</m:mo></m:mrow></m:math>,
+(such as the perceptron algorithm) are called <emphasis effect="bold">discriminative</emphasis> learning algorithms.
+Here, we'll talk about algorithms that instead try to model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> (and <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>).
+These algorithms are called <emphasis effect="bold">generative</emphasis> learning algorithms.
+For instance, if <m:math overflow="scroll"><m:mi>y</m:mi></m:math> indicates whether an example is a dog (0) or an elephant
+(1), then <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>)</m:mo></m:mrow></m:math> models the distribution of dogs' features, and <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:math> models
+the distribution of elephants' features.</para>
+      <para id="id63067">After modeling <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> (called the <emphasis effect="bold">class priors</emphasis>) and <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>, our algorithm can then
+use Bayes rule to derive the posterior distribution on <m:math overflow="scroll"><m:mi>y</m:mi></m:math> given <m:math overflow="scroll"><m:mi>x</m:mi></m:math>:</para>
+      <equation id="id63127">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>y</m:mi>
+              <m:mo>|</m:mo>
+              <m:mi>x</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:mi>x</m:mi>
+                <m:mo>|</m:mo>
+                <m:mi>y</m:mi>
+                <m:mo>)</m:mo>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:mi>y</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:mi>x</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id63188">Here, the denominator is given by <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>)</m:mo><m:mo>=</m:mo><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo><m:mo>+</m:mo><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>)</m:mo><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>)</m:mo></m:mrow></m:math> (you should be able
+to verify that this is true from the standard properties of probabilities), and thus can
+also be expressed in terms of the quantities <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> that we've learned.
+Actually, if were calculating <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math> in order to make a prediction, then we don't
+actually need to calculate the denominator, since</para>
+      <equation id="id63330">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mo form="prefix">arg</m:mo>
+                  <m:munder>
+                    <m:mo movablelimits="true" form="prefix">max</m:mo>
+                    <m:mi>y</m:mi>
+                  </m:munder>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mo form="prefix">arg</m:mo>
+                  <m:munder>
+                    <m:mo movablelimits="true" form="prefix">max</m:mo>
+                    <m:mi>y</m:mi>
+                  </m:munder>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:mi>x</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>)</m:mo>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:mi>x</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mo form="prefix">arg</m:mo>
+                  <m:munder>
+                    <m:mo movablelimits="true" form="prefix">max</m:mo>
+                    <m:mi>y</m:mi>
+                  </m:munder>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+    </section>
+<section id="cid2">
+      <title>Gaussian discriminant analysis</title>
+      <para id="id63495">The first generative learning algorithm that we'll look at is Gaussian
+discriminant analysis (GDA). In this model, we'll assume that <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> is distributed according to
+a multivariate normal distribution. Let's talk briefly about the properties of
+multivariate normal distributions before moving on to the GDA model itself.</para>
+      <section id="uid1">
+        <title>The multivariate normal distribution</title>
+        <para id="id63528">The multivariate normal distribution in <m:math overflow="scroll"><m:mi>n</m:mi></m:math>-dimensions,
+also called the multivariate Gaussian distribution, is parameterized by a
+<emphasis effect="bold">mean vector</emphasis><m:math overflow="scroll"><m:mrow><m:mi>μ</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> and a <emphasis effect="bold">covariance matrix</emphasis><m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>n</m:mi><m:mo>×</m:mo><m:mi>n</m:mi></m:mrow></m:msup></m:mrow></m:math>,
+where <m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>≥</m:mo><m:mn>0</m:mn></m:mrow></m:math> is symmetric and positive semi-definite. Also written “<m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mo>Σ</m:mo><m:mo>)</m:mo></m:mrow></m:math>”,
+its density is given by:</para>
+        <equation id="id63636">
+          <m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mi>p</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>x</m:mi>
+                <m:mo>;</m:mo>
+                <m:mi>μ</m:mi>
+                <m:mo>,</m:mo>
+                <m:mo>Σ</m:mo>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>=</m:mo>
+              <m:mfrac>
+                <m:mn>1</m:mn>
+                <m:mrow>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>2</m:mn>
+                      <m:mi>π</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mi>n</m:mi>
+                      <m:mo>/</m:mo>
+                      <m:mn>2</m:mn>
+                    </m:mrow>
+                  </m:msup>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                      <m:mo>Σ</m:mo>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mn>1</m:mn>
+                      <m:mo>/</m:mo>
+                      <m:mn>2</m:mn>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+              </m:mfrac>
+              <m:mo form="prefix">exp</m:mo>
+              <m:mfenced separators="" open="(" close=")">
+                <m:mo>-</m:mo>
+                <m:mfrac>
+                  <m:mn>1</m:mn>
+                  <m:mn>2</m:mn>
+                </m:mfrac>
+                <m:msup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>-</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mi>T</m:mi>
+                </m:msup>
+                <m:msup>
+                  <m:mo>Σ</m:mo>
+                  <m:mrow>
+                    <m:mo>-</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                </m:msup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>x</m:mi>
+                  <m:mo>-</m:mo>
+                  <m:mi>μ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mfenced>
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation>
+        <para id="id63770">In the equation above, “<m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mo>Σ</m:mo><m:mo>|</m:mo></m:mrow></m:math>” denotes the determinant of the matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>.</para>
+        <para id="id63797">For a random variable <m:math overflow="scroll"><m:mi>X</m:mi></m:math> distributed <m:math overflow="scroll"><m:mrow><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mo>Σ</m:mo><m:mo>)</m:mo></m:mrow></m:math>, the mean is (unsurprisingly)
+given by <m:math overflow="scroll"><m:mi>μ</m:mi></m:math>:</para>
+        <equation id="id63838">
+          <m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mi mathvariant="normal">E</m:mi>
+              <m:mrow>
+                <m:mo>[</m:mo>
+                <m:mi>X</m:mi>
+                <m:mo>]</m:mo>
+              </m:mrow>
+              <m:mo>=</m:mo>
+              <m:msub>
+                <m:mo>∫</m:mo>
+                <m:mi>x</m:mi>
+              </m:msub>
+              <m:mi>x</m:mi>
+              <m:mspace width="0.166667em"/>
+              <m:mi>p</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>x</m:mi>
+                <m:mo>;</m:mo>
+                <m:mi>μ</m:mi>
+                <m:mo>,</m:mo>
+                <m:mo>Σ</m:mo>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mi>d</m:mi>
+              <m:mi>x</m:mi>
+              <m:mo>=</m:mo>
+              <m:mi>μ</m:mi>
+            </m:mrow>
+          </m:math>
+        </equation>
+        <para id="id63900">The <emphasis effect="bold">covariance</emphasis> of a vector-valued random variable <m:math overflow="scroll"><m:mi>Z</m:mi></m:math> is
+defined as <m:math overflow="scroll"><m:mrow><m:mi> Cov </m:mi><m:mrow><m:mo>(</m:mo><m:mi>Z</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mrow><m:mo>(</m:mo><m:mi>Z</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:msup><m:mrow><m:mo>(</m:mo><m:mi>Z</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow></m:math>. This generalizes
+the notion of the variance of a real-valued random variable. The covariance can
+also be defined as <m:math overflow="scroll"><m:mrow><m:mi> Cov </m:mi><m:mrow><m:mo>(</m:mo><m:mi>Z</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Z</m:mi><m:msup><m:mi>Z</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>-</m:mo><m:mrow><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:msup><m:mrow><m:mo>(</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup></m:mrow></m:math>. (You should
+be able to prove to yourself that these two definitions are equivalent.)
+If <m:math overflow="scroll"><m:mrow><m:mi>X</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mo>Σ</m:mo><m:mo>)</m:mo></m:mrow></m:math>, then</para>
+        <equation id="id64098">
+          <m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mi> Cov </m:mi>
+              <m:mo>(</m:mo>
+              <m:mi>X</m:mi>
+              <m:mo>)</m:mo>
+              <m:mo>=</m:mo>
+              <m:mo>Σ</m:mo>
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation>
+        <para id="id64122">Here're some examples of what the density of a Gaussian distribution looks like:</para>
+        <para id="id64126">
+          <figure id="id64127"><media id="id64127_media" alt="a 3D coordinate plane. Everything is centered around (0,0), medium height">
+              <image mime-type="image/png" src="../../media/gaussian_1_0_1.png" id="id64127_onlineimage" width="473"><!-- NOTE: attribute width changes image size online (pixels). original width is 473. --></image>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0_1.eps" id="id64127_printimage"/>
+            </media>
+          </figure><figure id="id64133"><media id="id64133_media" alt="a 3D coordinate plane. Everything is centered around (0,0), tall height">
+              <image mime-type="image/png" src="../../media/gaussian_0.6_0_0.6.png" id="id64133_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_0.6_0_0.6.eps" id="id64133_printimage"/>
+            </media>
+          </figure><figure id="id64146"><media id="id64146_media" alt="">
+              <image mime-type="image/png" src="../../media/gaussian_2_0_2.png" id="id64146_onlineimage" width="473"><!-- NOTE: attribute width changes image size online (pixels). original width is 473. --></image>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_2_0_2.eps" id="id64146_printimage"/>
+            </media>
+          </figure></para>
+        <para id="id64152">The left-most figure shows a Gaussian with mean zero (that is, the 2x1 zero-vector) and covariance matrix
+<m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>=</m:mo><m:mi>I</m:mi></m:mrow></m:math> (the 2x2 identity matrix). A Gaussian with zero mean and identity covariance is
+also called the <emphasis effect="bold">standard normal distribution</emphasis>.
+The middle figure shows the density of a Gaussian with zero mean and <m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>6</m:mn><m:mi>I</m:mi></m:mrow></m:math>; and in
+the rightmost figure shows one with , <m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>=</m:mo><m:mn>2</m:mn><m:mi>I</m:mi></m:mrow></m:math>. We see that as <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> becomes larger,
+the Gaussian becomes more “spread-out,” and as it becomes smaller, the distribution becomes
+more “compressed.”</para>
+        <para id="id64222">Let's look at some more examples.</para>
+        <para id="id64225"><figure id="id64226"><media id="id64226_media" alt="a 3D coordinate plane. Points are centered around the line x=y, Mostly centered around (0,0), medium height">
+              <image mime-type="image/png" src="../../media/gaussian_1_0_1b.png" id="id64226_onlineimage" width="469"><!-- NOTE: attribute width changes image size online (pixels). original width is 469. --></image>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0_1b.eps" id="id64226_printimage"/>
+            </media>
+          </figure><figure id="id64232"><media id="id64232_media" alt="a 3D coordinate plane. Points are centered around the line x=y, Mostly centered around (0,0), high height">
+              <image mime-type="image/png" src="../../media/gaussian_1_0.5_1b.png" id="id64232_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0.5_1b.eps" id="id64232_printimage"/>
+            </media>
+          </figure><figure id="id64246"><media id="id64246_media" alt="a 3D coordinate plane. Points are centered around the line x=y, Mostly centered around (0,0), highest height">
+              <image mime-type="image/png" src="../../media/gaussian_1_0.8_1b.png" id="id64246_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0.8_1b.eps" id="id64246_printimage"/>
+            </media>
+          </figure></para><para id="id64259">The figures above show Gaussians with mean 0, and with covariance matrices respectively
+</para>
+        <equation id="id64327"><m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mo>Σ</m:mo>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>1</m:mn>
+    </m:mtd>
+    <m:mtd>
+       <m:mn>0</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>;</m:mo>
+              <m:mspace width="0.277778em"/>
+              <m:mspace width="0.277778em"/>
+              <m:mo>Σ</m:mo>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>0.5</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0.5</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>;</m:mo>
+              <m:mspace width="0.277778em"/>
+              <m:mspace width="0.277778em"/>
+              <m:mo>.</m:mo>
+              <m:mo>Σ</m:mo>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>0.8</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0.8</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation><para id="id64390">The leftmost figure shows the familiar standard normal distribution, and we see that as we increase the
+off-diagonal entry in <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>, the density becomes more “compressed” towards the <m:math overflow="scroll"><m:msup><m:mn>45</m:mn><m:mo>∘</m:mo></m:msup></m:math> line
+(given by <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>=</m:mo><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:mrow></m:math>). We can see this more clearly when we look at the contours of
+the same three densities:</para>
+        <para id="id64447"><figure id="id64448"><media id="id64448_media" alt="density view, most dense in middle. Spread out in a circle">
+              <image mime-type="image/png" src="../../media/gaussian_1_0_1con.png" id="id64448_onlineimage" width="456"><!-- NOTE: attribute width changes image size online (pixels). original width is 456. --></image>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0_1con.eps" id="id64448_printimage"/>
+            </media>
+          </figure><figure id="id64454"><media id="id64454_media" alt="density view, most dense in middle. Spread out in a line similar to x=y, spreading out like an ellipse">
+              <image mime-type="image/png" src="../../media/gaussian_1_0.5_1con.png" id="id64454_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0.5_1con.eps" id="id64454_printimage"/>
+            </media>
+          </figure><figure id="id64468"><media id="id64468_media" alt="density view, most dense in middle. Spread out in a line similar to x=y, spreading out like an ellipse, but skinnier than above">
+              <image mime-type="image/png" src="../../media/gaussian_1_0.8_1con.png" id="id64468_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_0.8_1con.eps" id="id64468_printimage"/>
+            </media>
+          </figure></para><para id="id64483">Here's one last set of examples generated by varying <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>:</para>
+        <para id="id64496"><figure id="id64498"><media id="id64498_media" alt="density view, most dense in middle. Spread out in a line similar to x=-y, spreading out like an ellipse">
+              <image mime-type="image/png" src="../../media/gaussian_1_-0.5_1con.png" id="id64498_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_-0.5_1con.eps" id="id64498_printimage"/>
+            </media>
+          </figure><figure id="id64511"><media id="id64511_media" alt="density view, most dense in middle. Spread out in a line similar to x=-y, spreading out like an ellipse, skinnier than above">
+              <image mime-type="image/png" src="../../media/gaussian_1_-0.8_1con.png" id="id64511_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_1_-0.8_1con.eps" id="id64511_printimage"/>
+            </media>
+          </figure><figure id="id64526"><media id="id64526_media" alt="density view, most dense in middle. Spread out in a line similar to 2x=y, spreading out like an ellipse">
+              <image mime-type="image/png" src="../../media/gaussian_3_0.8_1con.png" id="id64526_onlineimage"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_3_0.8_1con.eps" id="id64526_printimage"/>
+            </media>
+          </figure></para><para id="id64540">The plots above used, respectively,
+</para>
+        <equation id="id64611"><m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mo>Σ</m:mo>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>1</m:mn>
+    </m:mtd>
+    <m:mtd>
+       <m:mn>-0.5</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>-0.5</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>;</m:mo>
+              <m:mspace width="0.277778em"/>
+              <m:mspace width="0.277778em"/>
+              <m:mo>Σ</m:mo>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>1</m:mn>
+    </m:mtd>
+    <m:mtd>
+       <m:mn>-0.8</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>-0.8</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>;</m:mo>
+              <m:mspace width="0.277778em"/>
+              <m:mspace width="0.277778em"/>
+              <m:mo>.</m:mo>
+              <m:mo>Σ</m:mo>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>3</m:mn>
+    </m:mtd>
+    <m:mtd>
+       <m:mn>0.8</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0.8</m:mn>
+    </m:mtd>
+    <m:mtd>
+        <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation><para id="id64677">From the leftmost and middle figures, we see that by decreasing the diagonal elements of the
+covariance matrix, the density now becomes “compressed” again, but in the opposite direction.
+Lastly, as we vary the parameters, more generally the contours will form ellipses (the
+rightmost figure showing an example).</para>
+        <para id="id64688">As our last set of examples, fixing <m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>=</m:mo><m:mi>I</m:mi></m:mrow></m:math>, by varying <m:math overflow="scroll"><m:mi>μ</m:mi></m:math>, we can also move the
+mean of the density around.</para>
+        <para id="eip-455"><figure id="id644982"><media id="id64498_media2" alt="a 3D coordinate plane. Points are centered around the line x=y, Mostly centered around (0,1), medium height">
+              <image mime-type="image/png" src="../../media/gaussian_mu1.png" id="id64498_onlineimage2"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_mu1.eps" id="id64498_printimage2"/>
+            </media>
+          </figure><figure id="id645112"><media id="id64511_media2" alt="a 3D coordinate plane. Points are centered around the line x=y, Mostly centered around (0,-1), medium height">
+              <image mime-type="image/png" src="../../media/gaussian_mu2.png" id="id64511_onlineimage2"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_mu2.eps" id="id64511_printimage2"/>
+            </media>
+          </figure><figure id="id645262"><media id="id64526_media2" alt="a 3D coordinate plane. Points are centered around the line x=y, Mostly centered around (-1,-1), medium height">
+              <image mime-type="image/png" src="../../media/gaussian_mu3.png" id="id64526_onlineimage2"/>
+              <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/gaussian_mu3.eps" id="id64526_printimage2"/>
+            </media>
+          </figure></para><para id="id64841">The figures above were generated using <m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>=</m:mo><m:mi>I</m:mi></m:mrow></m:math>, and respectively
+</para>
+        <equation id="id64926"><m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mi>μ</m:mi>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>;</m:mo>
+              <m:mspace width="0.277778em"/>
+              <m:mspace width="0.277778em"/>
+              <m:mi>μ</m:mi>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>-0.5</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>;</m:mo>
+              <m:mspace width="0.277778em"/>
+              <m:mspace width="0.277778em"/>
+              <m:mi>μ</m:mi>
+              <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>-1</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>-1.5</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation></section>
+      <section id="uid2">
+        <title>The Gaussian Discriminant Analysis model</title>
+        <para id="id65001">When we have a classification problem in which the input features <m:math overflow="scroll"><m:mi>x</m:mi></m:math> are continuous-valued
+random variables, we can then use the Gaussian Discriminant Analysis (GDA) model, which
+models <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> using a multivariate normal distribution. The model is:</para>
+        <equation id="id65036">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mi>y</m:mi>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>∼</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mi> Bernoulli </m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>Φ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>x</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>0</m:mn>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>∼</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mi mathvariant="script">N</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>0</m:mn>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:mo>Σ</m:mo>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>x</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>∼</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mi mathvariant="script">N</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:mo>Σ</m:mo>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id65161">Writing out the distributions, this is:</para>
+        <equation id="id65167">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>Φ</m:mi>
+                      <m:mi>y</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>-</m:mo>
+                        <m:mi>Φ</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mrow>
+                        <m:mn>1</m:mn>
+                        <m:mo>-</m:mo>
+                        <m:mi>y</m:mi>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>0</m:mn>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mi>π</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mi>n</m:mi>
+                            <m:mo>/</m:mo>
+                            <m:mn>2</m:mn>
+                          </m:mrow>
+                        </m:msup>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>|</m:mo>
+                            <m:mo>Σ</m:mo>
+                            <m:mo>|</m:mo>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mn>1</m:mn>
+                            <m:mo>/</m:mo>
+                            <m:mn>2</m:mn>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                    </m:mfrac>
+                    <m:mo form="prefix">exp</m:mo>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:mo>-</m:mo>
+                      <m:mfrac>
+                        <m:mn>1</m:mn>
+                        <m:mn>2</m:mn>
+                      </m:mfrac>
+                      <m:msup>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>x</m:mi>
+                          <m:mo>-</m:mo>
+                          <m:msub>
+                            <m:mi>μ</m:mi>
+                            <m:mn>0</m:mn>
+                          </m:msub>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                      <m:msup>
+                        <m:mo>Σ</m:mo>
+                        <m:mrow>
+                          <m:mo>-</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>x</m:mi>
+                        <m:mo>-</m:mo>
+                        <m:msub>
+                          <m:mi>μ</m:mi>
+                          <m:mn>0</m:mn>
+                        </m:msub>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mfenced>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mi>π</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mi>n</m:mi>
+                            <m:mo>/</m:mo>
+                            <m:mn>2</m:mn>
+                          </m:mrow>
+                        </m:msup>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>|</m:mo>
+                            <m:mo>Σ</m:mo>
+                            <m:mo>|</m:mo>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mn>1</m:mn>
+                            <m:mo>/</m:mo>
+                            <m:mn>2</m:mn>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                    </m:mfrac>
+                    <m:mo form="prefix">exp</m:mo>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:mo>-</m:mo>
+                      <m:mfrac>
+                        <m:mn>1</m:mn>
+                        <m:mn>2</m:mn>
+                      </m:mfrac>
+                      <m:msup>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>x</m:mi>
+                          <m:mo>-</m:mo>
+                          <m:msub>
+                            <m:mi>μ</m:mi>
+                            <m:mn>1</m:mn>
+                          </m:msub>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                      <m:msup>
+                        <m:mo>Σ</m:mo>
+                        <m:mrow>
+                          <m:mo>-</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>x</m:mi>
+                        <m:mo>-</m:mo>
+                        <m:msub>
+                          <m:mi>μ</m:mi>
+                          <m:mn>1</m:mn>
+                        </m:msub>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mfenced>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id65521">Here, the parameters of our model are <m:math overflow="scroll"><m:mi>Φ</m:mi></m:math>,
+<m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>, <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mn>0</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub></m:math>.
+(Note that while there're two different mean vectors <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mn>0</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub></m:math>,
+this model is usually applied using only one covariance matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>.)
+The log-likelihood of the data is given by</para>
+        <equation id="id65614">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>ℓ</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>Φ</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>0</m:mn>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:mo>Σ</m:mo>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mo form="prefix">log</m:mo>
+                    <m:munderover>
+                      <m:mo>∏</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>Φ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:msub>
+                        <m:mi>μ</m:mi>
+                        <m:mn>0</m:mn>
+                      </m:msub>
+                      <m:mo>,</m:mo>
+                      <m:msub>
+                        <m:mi>μ</m:mi>
+                        <m:mn>1</m:mn>
+                      </m:msub>
+                      <m:mo>,</m:mo>
+                      <m:mo>Σ</m:mo>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd/>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mo form="prefix">log</m:mo>
+                    <m:munderover>
+                      <m:mo>∏</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>|</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:msub>
+                        <m:mi>μ</m:mi>
+                        <m:mn>0</m:mn>
+                      </m:msub>
+                      <m:mo>,</m:mo>
+                      <m:msub>
+                        <m:mi>μ</m:mi>
+                        <m:mn>1</m:mn>
+                      </m:msub>
+                      <m:mo>,</m:mo>
+                      <m:mo>Σ</m:mo>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>Φ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>.</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id65873">By maximizing <m:math overflow="scroll"><m:mi>ℓ</m:mi></m:math> with respect to the parameters, we find the maximum likelihood
+estimate of the parameters (see problem set 1) to be:</para>
+        <equation id="id65889">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mi>Φ</m:mi>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mi>m</m:mi>
+                    </m:mfrac>
+                    <m:munderover>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>{</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>}</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>μ</m:mi>
+                    <m:mn>0</m:mn>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>μ</m:mi>
+                    <m:mn>1</m:mn>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mo>Σ</m:mo>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mi>m</m:mi>
+                    </m:mfrac>
+                    <m:munderover>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:msub>
+                        <m:mi>μ</m:mi>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:msub>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>-</m:mo>
+                        <m:msub>
+                          <m:mi>μ</m:mi>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                        </m:msub>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>.</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id66321">Pictorially, what the algorithm is doing can be seen in as follows:</para>
+        <figure id="uid3"><media id="uid3_media" alt="two different data sets have a distribution circles in different quadrants with a line following y=-x separating them">
+            <image mime-type="image/png" src="../../media/disgen3c.png" id="uid3_onlineimage" width="458"><!-- NOTE: attribute width changes image size online (pixels). original width is 458. --></image>
+            <image print-width="3.5in" mime-type="application/postscript" for="pdf" src="../../media/disgen3c.eps" id="uid3_printimage"/>
+          </media>
+        </figure><para id="id66334">Shown in the figure are the training set, as well as the contours of the
+two Gaussian distributions that have been fit to the data in each of the
+two classes. Note that the two Gaussians have contours that are the same
+shape and orientation, since they share a covariance matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>, but
+they have different means <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mn>0</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub></m:math>. Also shown in the figure is
+the straight line giving the decision boundary at which <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>.</m:mo><m:mn>5</m:mn></m:mrow></m:math>. On
+one side of the boundary, we'll predict <m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> to be the most likely outcome, and
+on the other side, we'll predict <m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>.</para>
+      </section>
+      <section id="uid4">
+        <title>Discussion: GDA and logistic regression</title>
+        <para id="id66450">The GDA model has an interesting relationship to logistic regression. If we view
+the quantity <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>;</m:mo><m:mi>Φ</m:mi><m:mo>,</m:mo><m:msub><m:mi>μ</m:mi><m:mn>0</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>Σ</m:mo><m:mo>)</m:mo></m:mrow></m:math> as a function of <m:math overflow="scroll"><m:mi>x</m:mi></m:math>, we'll
+find that it can be expressed in the form</para>
+        <equation id="id66518">
+          <m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:mi>p</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>y</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+                <m:mo>|</m:mo>
+                <m:mi>x</m:mi>
+                <m:mo>;</m:mo>
+                <m:mi>Φ</m:mi>
+                <m:mo>,</m:mo>
+                <m:mo>Σ</m:mo>
+                <m:mo>,</m:mo>
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mn>0</m:mn>
+                </m:msub>
+                <m:mo>,</m:mo>
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mn>1</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>=</m:mo>
+              <m:mfrac>
+                <m:mn>1</m:mn>
+                <m:mrow>
+                  <m:mn>1</m:mn>
+                  <m:mo>+</m:mo>
+                  <m:mo form="prefix">exp</m:mo>
+                  <m:mo>(</m:mo>
+                  <m:mo>-</m:mo>
+                  <m:msup>
+                    <m:mi>θ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mfrac>
+              <m:mo>,</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation>
+        <para id="id66608">where <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> is some appropriate function of <m:math overflow="scroll"><m:mrow><m:mi>Φ</m:mi><m:mo>,</m:mo><m:mo>Σ</m:mo><m:mo>,</m:mo><m:msub><m:mi>μ</m:mi><m:mn>0</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub></m:mrow></m:math>.<footnote id="uid5">This uses the convention of redefining the <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>'s on the right-hand-side to be
+<m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:math>-dimensional vectors by adding the extra coordinate <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>x</m:mi><m:mn>0</m:mn><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>; see
+problem set 1.</footnote> This is exactly the form that logistic regression—a discriminative algorithm—used to
+model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math>.</para>
+        <para id="id66757">When would we prefer one model over another? GDA and logistic regression will,
+in general, give different decision boundaries when trained on the same dataset. Which is better?</para>
+        <para id="id66761">We just argued that if <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> is multivariate gaussian (with shared <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>),
+then <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math> necessarily follows a logistic function. The converse, however,
+is not true; i.e., <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math> being a logistic function does not imply
+<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> is multivariate gaussian. This shows that GDA makes <emphasis effect="italics">stronger</emphasis> modeling assumptions
+about the data than does logistic regression. It turns out that when these modeling
+assumptions are correct, then GDA will find better fits to the data, and is a better model.
+Specifically, when <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> is indeed gaussian (with shared <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>), then GDA is
+<emphasis effect="bold">asymptotically efficient</emphasis>. Informally, this means that in the limit of very large
+training sets (large <m:math overflow="scroll"><m:mi>m</m:mi></m:math>), there is no algorithm that is strictly better than GDA (in terms of,
+say, how accurately they estimate <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math>). In particular, it can be shown that in this
+setting, GDA will be a better algorithm than logistic regression; and more generally,
+even for small training set sizes, we would generally expect GDA to better.</para>
+        <para id="id66933">In contrast, by making significantly weaker assumptions, logistic regression is also more
+<emphasis effect="italics">robust</emphasis> and less sensitive to incorrect modeling assumptions.
+There are many different sets of assumptions that would lead to <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math> taking the form
+of a logistic function. For example, if
+<m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>∼</m:mo><m:mi> Poisson </m:mi><m:mo>(</m:mo><m:msub><m:mi>λ</m:mi><m:mn>0</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:math>, and <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>∼</m:mo><m:mi> Poisson </m:mi><m:mo>(</m:mo><m:msub><m:mi>λ</m:mi><m:mn>1</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:math>,
+then <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>|</m:mo><m:mi>x</m:mi><m:mo>)</m:mo></m:mrow></m:math> will be logistic. Logistic regression will also work well on
+Poisson data like this. But if we were to use GDA on such data—and fit Gaussian distributions to
+such non-Gaussian data—then the results will be less predictable, and GDA may (or may not)
+do well.</para>
+        <para id="id67060">To summarize: GDA makes stronger modeling assumptions, and is more data efficient
+(i.e., requires less training data to learn “well”)
+when the modeling assumptions are correct or at least approximately correct. Logistic
+regression makes weaker assumptions, and is significantly more robust to deviations
+from modeling assumptions. Specifically, when the data is indeed non-Gaussian, then
+in the limit of large datasets, logistic regression will almost always do better than
+GDA. For this reason, in practice logistic regression is used more often than GDA.
+(Some related considerations about discriminative vs. generative models also apply for
+the Naive Bayes algorithm that we discuss next, but the Naive Bayes algorithm is still
+considered a very good, and is certainly also a very popular, classification algorithm.)</para>
+      </section>
+    </section>
+    <section id="cid3">
+      <title>Naive Bayes</title>
+      <para id="id67079">In GDA, the feature vectors <m:math overflow="scroll"><m:mi>x</m:mi></m:math> were continuous, real-valued vectors. Let's now talk
+about a different learning algorithm in which the <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math>'s are discrete-valued.</para>
+      <para id="id67107">For our motivating example, consider building an email spam filter using machine
+learning. Here, we wish to classify messages according to whether they are
+unsolicited commercial (spam) email, or non-spam email. After learning to do this,
+we can then have our mail reader automatically filter out the spam messages and perhaps
+place them in a separate mail folder. Classifying emails is one example of a broader
+set of problems called <emphasis effect="bold">text classification</emphasis>.</para>
+      <para id="id67119">Let's say we have a training set (a set of emails labeled as spam or non-spam).
+We'll begin our construction of our spam filter by specifying the features <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> used
+to represent an email.</para>
+      <para id="id67139">We will represent an email via a feature vector whose length is equal to the number
+of words in the dictionary. Specifically, if an email contains the <m:math overflow="scroll"><m:mi>i</m:mi></m:math>-th word of the
+dictionary, then we will set <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> = 1; otherwise, we let <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>. For instance,
+the vector
+</para>
+      <equation id="id67229"><m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>x</m:mi>
+            <m:mo>=</m:mo>
+
+<m:mfenced separators="" open="[" close="]">
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>0</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>0</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>⋮</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>1</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>⋮</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>0</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+</m:mfenced>
+
+            <m:mspace width="0.277778em"/>
+            <m:mspace width="0.277778em"/>
+            <m:mspace width="0.277778em"/>
+
+ <m:mtable>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>a</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+        <m:mn>aardvark</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>aardwolf</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>⋮</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>buy</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>⋮</m:mn>
+    </m:mtd>
+  </m:mtr>
+  <m:mtr>
+    <m:mtd>
+       <m:mn>zygmurgy</m:mn>
+    </m:mtd>
+  </m:mtr>
+ </m:mtable>
+          </m:mrow>
+        </m:math>
+      </equation><para id="id67260">is used to represent an email that contains the words “a” and “buy,” but
+not “aardvark,” “aardwolf” or “zygmurgy.”<footnote id="uid6">Actually,
+rather than looking through an english dictionary for the list of all english words,
+in practice
+it is more common to look through our training set and encode in our feature vector
+only the words that occur at least once there. Apart from reducing the number of
+words modeled and hence reducing our computational and space requirements, this also
+has the advantage of allowing us to model/include as a feature many words that may appear in your
+email (such as “cs229”) but that you won't find in a dictionary.
+Sometimes (as in the homework),
+we also exclude the very high frequency words (which will be words like “the,” “of,” “and,”;
+these high frequency, “content free” words are called <emphasis effect="bold">stop words</emphasis>) since they occur in so
+many documents and do little to indicate whether an email is spam or non-spam.</footnote>
+The set of words encoded into the feature vector is called the <emphasis effect="bold">vocabulary</emphasis>, so
+the dimension of <m:math overflow="scroll"><m:mi>x</m:mi></m:math> is equal to the size of the vocabulary.</para>
+      <para id="id67314">Having chosen our feature vector, we now want to build a generative model.
+So, we have to model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>. But if we have, say, a vocabulary of 50000 words,
+then <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mo>{</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>}</m:mo></m:mrow><m:mn>50000</m:mn></m:msup></m:mrow></m:math> (<m:math overflow="scroll"><m:mi>x</m:mi></m:math> is a 50000-dimensional vector of 0's and 1's),
+and if we were to model <m:math overflow="scroll"><m:mi>x</m:mi></m:math> explicitly with a multinomial
+distribution over the <m:math overflow="scroll"><m:msup><m:mn>2</m:mn><m:mn>50000</m:mn></m:msup></m:math> possible outcomes, then we'd end up with a
+<m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:msup><m:mn>2</m:mn><m:mn>50000</m:mn></m:msup><m:mo>-</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:math>-dimensional parameter vector. This is clearly too many parameters.</para>
+      <para id="id67426">To model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>, we will therefore make a very strong assumption. We will
+assume that the <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math>'s are conditionally independent given <m:math overflow="scroll"><m:mi>y</m:mi></m:math>.
+This assumption is called the <emphasis effect="bold">Naive Bayes (NB) assumption</emphasis>, and the
+resulting algorithm is called the <emphasis effect="bold">Naive Bayes classifier</emphasis>.
+For instance, if <m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> means spam email; “buy” is word 2087 and “price” is word 39831;
+then we are assuming that if I tell you <m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> (that a particular piece of email is spam), then
+knowledge of <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub></m:math> (knowledge of whether “buy” appears in the message) will have
+no effect on your beliefs about the value of <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>39831</m:mn></m:msub></m:math> (whether “price” appears).
+More formally, this can be written <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>,</m:mo><m:msub><m:mi>x</m:mi><m:mn>39831</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+(Note that this is <emphasis effect="italics">not</emphasis> the same as saying that <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>39831</m:mn></m:msub></m:math>
+are independent, which would have been written “<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub><m:mo>|</m:mo><m:msub><m:mi>x</m:mi><m:mn>39831</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>”; rather,
+we are only assuming that <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2087</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>39831</m:mn></m:msub></m:math> are conditionally independent <emphasis effect="italics">given</emphasis><m:math overflow="scroll"><m:mi>y</m:mi></m:math>.)</para>
+      <para id="id67735">We now have:</para>
+      <equation id="id67738"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:msub>
+                    <m:mi>x</m:mi>
+                    <m:mn>1</m:mn>
+                  </m:msub>
+                  <m:mo>,</m:mo>
+                  <m:mo>...</m:mo>
+                  <m:mo>,</m:mo>
+                  <m:msub>
+                    <m:mi>x</m:mi>
+                    <m:mn>50000</m:mn>
+                  </m:msub>
+                  <m:mo>|</m:mo>
+                  <m:mi>y</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>3</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>⋯</m:mo>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>50000</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:mo>...</m:mo>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>49999</m:mn>
+                    </m:msub>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>3</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>⋯</m:mo>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>50000</m:mn>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∏</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>n</m:mi>
+                  </m:munderover>
+                  <m:mi>p</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mi>i</m:mi>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id68084">The first equality simply follows from the usual properties of probabilities,
+and the second equality used the NB assumption.
+We note that even though the Naive Bayes assumption is an extremely strong
+assumptions, the resulting algorithm works well on many problems.</para>
+      <para id="id68092">Our model is parameterized by <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:mrow></m:math>,
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>)</m:mo></m:mrow></m:mrow></m:math>,
+and <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>y</m:mi></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:mrow></m:math>. As usual, given a training set <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>;</m:mo><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi><m:mo>}</m:mo></m:mrow></m:math>, we
+can write down the joint likelihood of the data:</para>
+      <equation id="id68300">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi mathvariant="script">L</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mi>y</m:mi>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mrow>
+                  <m:mi>j</m:mi>
+                  <m:mo>|</m:mo>
+                  <m:mi>y</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>0</m:mn>
+                </m:mrow>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mrow>
+                  <m:mi>j</m:mi>
+                  <m:mo>|</m:mo>
+                  <m:mi>y</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∏</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mi>p</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>x</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>,</m:mo>
+              <m:msup>
+                <m:mi>y</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id68422">Maximizing this with respect to <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>y</m:mi></m:msub><m:mo>,</m:mo><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:msub></m:mrow></m:math> and <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> gives
+the maximum likelihood estimates:</para>
+      <equation id="id68487">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mi>Φ</m:mi>
+                  <m:mrow>
+                    <m:mi>j</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:msubsup>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:msubsup>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>{</m:mo>
+                      <m:msubsup>
+                        <m:mi>x</m:mi>
+                        <m:mi>j</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>∧</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>}</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:msubsup>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:msubsup>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>{</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>}</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mi>Φ</m:mi>
+                  <m:mrow>
+                    <m:mi>j</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>0</m:mn>
+                  </m:mrow>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:msubsup>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:msubsup>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>{</m:mo>
+                      <m:msubsup>
+                        <m:mi>x</m:mi>
+                        <m:mi>j</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>∧</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>=</m:mo>
+                      <m:mn>0</m:mn>
+                      <m:mo>}</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:msubsup>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:msubsup>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>{</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>=</m:mo>
+                      <m:mn>0</m:mn>
+                      <m:mo>}</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mi>Φ</m:mi>
+                  <m:mi>y</m:mi>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:msubsup>
+                      <m:mo>∑</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:msubsup>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>{</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>}</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id68840">In the equations above, the “<m:math overflow="scroll"><m:mo>∧</m:mo></m:math>” symbol means “and.” The parameters have
+a very natural interpretation. For instance, <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>j</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> is just the fraction of
+the spam (<m:math overflow="scroll"><m:mrow><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>) emails in which word <m:math overflow="scroll"><m:mi>j</m:mi></m:math> does appear.</para>
+      <para id="id68904">Having fit all these parameters, to make a prediction on a new example with features <m:math overflow="scroll"><m:mi>x</m:mi></m:math>,
+we then simply calculate</para>
+      <equation id="id68917">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi>p</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mi>y</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>1</m:mn>
+                  <m:mo>|</m:mo>
+                  <m:mi>x</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfrac>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>|</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                    <m:mo>)</m:mo>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mfrac>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:mfenced separators="" open="(" close=")">
+                        <m:msubsup>
+                          <m:mo>∏</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>n</m:mi>
+                        </m:msubsup>
+                        <m:mi>p</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msub>
+                            <m:mi>x</m:mi>
+                            <m:mi>i</m:mi>
+                          </m:msub>
+                          <m:mo>|</m:mo>
+                          <m:mi>y</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:mfenced>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mfenced separators="" open="(" close=")">
+                        <m:msubsup>
+                          <m:mo>∏</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>n</m:mi>
+                        </m:msubsup>
+                        <m:mi>p</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msub>
+                            <m:mi>x</m:mi>
+                            <m:mi>i</m:mi>
+                          </m:msub>
+                          <m:mo>|</m:mo>
+                          <m:mi>y</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:mfenced>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mfenced separators="" open="(" close=")">
+                        <m:msubsup>
+                          <m:mo>∏</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>n</m:mi>
+                        </m:msubsup>
+                        <m:mi>p</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msub>
+                            <m:mi>x</m:mi>
+                            <m:mi>i</m:mi>
+                          </m:msub>
+                          <m:mo>|</m:mo>
+                          <m:mi>y</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>0</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:mfenced>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                  <m:mo>,</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id69200">and pick whichever class has the higher posterior probability.</para>
+      <para id="id69206">Lastly, we note that while we have developed the Naive Bayes algorithm mainly for the
+case of problems where the features <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> are binary-valued, the generalization to
+where <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> can take values in <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mn>2</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>k</m:mi><m:mi>i</m:mi></m:msub><m:mo>}</m:mo></m:mrow></m:math>
+is straightforward. Here, we would simply model <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> as multinomial rather than as Bernoulli.
+Indeed,
+even if some original input attribute
+(say, the living area of a house,
+as in our earlier example)
+were continuous valued, it is quite common to <emphasis effect="bold">discretize</emphasis> it—that is, turn it into
+a small set of discrete values—and apply Naive Bayes. For instance, if we use some
+feature <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> to represent living area, we might discretize the continuous values as follows:</para>
+      <table id="id69323" summary="">
+        <tgroup cols="6">
+          <tbody>
+            <row>
+              <entry>Living area (sq. feet)</entry>
+              <entry><m:math overflow="scroll"><m:mo>&lt;</m:mo></m:math> 400</entry>
+              <entry>400-800</entry>
+              <entry>800-1200</entry>
+              <entry>1200-1600</entry>
+              <entry><m:math overflow="scroll"><m:mo>&gt;</m:mo></m:math>1600</entry>
+            </row>
+            <row>
+              <entry>
+                <m:math overflow="scroll">
+                  <m:msub>
+                    <m:mi>x</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                </m:math>
+              </entry>
+              <entry>1</entry>
+              <entry>2</entry>
+              <entry>3</entry>
+              <entry>4</entry>
+              <entry>5</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <para id="id69439">Thus, for a house with living area 890 square feet, we would set the value of
+the corresponding feature <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> to 3. We can then apply the Naive Bayes algorithm, and model
+<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> with a multinomial distribution, as described previously. When the original,
+continuous-valued attributes are not well-modeled by a multivariate normal distribution, discretizing the
+features and using Naive Bayes (instead of GDA) will often result in a better classifier.</para>
+      <section id="uid7">
+        <title>Laplace smoothing</title>
+        <para id="id69495">The Naive Bayes algorithm as we have described it will work fairly well for many problems,
+but there is a simple change that makes it work much better, especially for text classification.
+Let's briefly discuss a problem with the algorithm in its current form, and then talk about
+how we can fix it.</para>
+        <para id="id69501">Consider spam/email classification, and let's suppose that, after completing CS229 and having
+done excellent work on the project, you decide around June 2003 to submit the
+work you did to the NIPS conference for publication.
+(NIPS is one of the top machine learning conferences, and the deadline for submitting a
+paper is typically in late June or early July.) Because you end up discussing the conference in
+your emails, you also start getting messages with the word “nips” in it. But this is your first
+NIPS paper, and until this time, you had not previously seen any emails containing the word “nips”;
+in particular “nips” did not ever appear in your training set of spam/non-spam emails.
+Assuming that “nips” was the
+35000th word in the dictionary, your Naive Bayes spam filter therefore had picked its
+maximum likelihood estimates of the parameters <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mrow><m:mn>35000</m:mn><m:mo>|</m:mo><m:mi>y</m:mi></m:mrow></m:msub></m:math> to be</para>
+        <equation id="id69537">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mn>35000</m:mn>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msubsup>
+                            <m:mi>x</m:mi>
+                            <m:mn>35000</m:mn>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msubsup>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>∧</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                      </m:mrow>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                      </m:mrow>
+                    </m:mfrac>
+                    <m:mo>=</m:mo>
+                    <m:mn>0</m:mn>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mn>35000</m:mn>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>0</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msubsup>
+                            <m:mi>x</m:mi>
+                            <m:mn>35000</m:mn>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msubsup>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>∧</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>0</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                      </m:mrow>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>0</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                      </m:mrow>
+                    </m:mfrac>
+                    <m:mo>=</m:mo>
+                    <m:mn>0</m:mn>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id69836">I.e., because it has never seen “nips” before in either spam or non-spam training examples, it thinks
+the probability of seeing it in either type of email is zero. Hence, when trying to decide if
+one of these messages containing “nips” is spam, it calculates the
+class posterior probabilities, and obtains</para>
+        <equation id="id69847">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>y</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                    <m:mo>|</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∏</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>n</m:mi>
+                      </m:msubsup>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msub>
+                          <m:mi>x</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                        <m:mo>|</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∏</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>n</m:mi>
+                      </m:msubsup>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msub>
+                          <m:mi>x</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                        <m:mo>|</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:msubsup>
+                        <m:mo>∏</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>n</m:mi>
+                      </m:msubsup>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msub>
+                          <m:mi>x</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                        <m:mo>|</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd/>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mn>0</m:mn>
+                      <m:mn>0</m:mn>
+                    </m:mfrac>
+                    <m:mo>.</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id70073">This is because each of the terms “<m:math overflow="scroll"><m:mrow><m:msubsup><m:mo>∏</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>n</m:mi></m:msubsup><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>” includes a term <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>35000</m:mn></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math> that
+is multiplied into it. Hence, our algorithm obtains <m:math overflow="scroll"><m:mrow><m:mn>0</m:mn><m:mo>/</m:mo><m:mn>0</m:mn></m:mrow></m:math>, and doesn't know how to make a prediction.</para>
+        <para id="id70169">Stating the problem more broadly, it is statistically a bad idea to estimate the probability of some event to be zero
+just because you haven't seen it before in your finite training set. Take the problem of estimating
+the mean of a multinomial random variable <m:math overflow="scroll"><m:mi>z</m:mi></m:math> taking values in <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>k</m:mi><m:mo>}</m:mo></m:mrow></m:math>. We can parameterize
+our multinomial with <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>=</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>. Given a set of <m:math overflow="scroll"><m:mi>m</m:mi></m:math> independent observations <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>m</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>}</m:mo></m:mrow></m:math>, the
+maximum likelihood estimates are given by</para>
+        <equation id="id70292">
+          <m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mi>j</m:mi>
+              </m:msub>
+              <m:mo>=</m:mo>
+              <m:mfrac>
+                <m:mrow>
+                  <m:msubsup>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:msubsup>
+                  <m:mn>1</m:mn>
+                  <m:mrow>
+                    <m:mo>{</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>=</m:mo>
+                    <m:mi>j</m:mi>
+                    <m:mo>}</m:mo>
+                  </m:mrow>
+                </m:mrow>
+                <m:mi>m</m:mi>
+              </m:mfrac>
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation>
+        <para id="id70360">As we saw previously, if we were to use these maximum likelihood estimates, then some of the <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>'s might
+end up as zero, which was a problem.
+To avoid this, we can use <emphasis effect="bold">Laplace smoothing</emphasis>, which replaces the above estimate with</para>
+        <equation id="id70388">
+          <m:math overflow="scroll" mode="display">
+            <m:mrow>
+              <m:msub>
+                <m:mi>Φ</m:mi>
+                <m:mi>j</m:mi>
+              </m:msub>
+              <m:mo>=</m:mo>
+              <m:mfrac>
+                <m:mrow>
+                  <m:msubsup>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:msubsup>
+                  <m:mn>1</m:mn>
+                  <m:mrow>
+                    <m:mo>{</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>=</m:mo>
+                    <m:mi>j</m:mi>
+                    <m:mo>}</m:mo>
+                  </m:mrow>
+                  <m:mo>+</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+                <m:mrow>
+                  <m:mi>m</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>k</m:mi>
+                </m:mrow>
+              </m:mfrac>
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:math>
+        </equation>
+        <para id="id70465">Here, we've added 1 to the numerator, and <m:math overflow="scroll"><m:mi>k</m:mi></m:math> to the denominator.
+Note that <m:math overflow="scroll"><m:mrow><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>j</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>k</m:mi></m:msubsup><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> still holds (check this yourself!), which is a desirable property since
+the <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>'s are estimates for probabilities that we know must sum to 1. Also, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub><m:mo>≠</m:mo><m:mn>0</m:mn></m:mrow></m:math> for all values
+of <m:math overflow="scroll"><m:mi>j</m:mi></m:math>, solving our problem of probabilities being estimated as zero. Under certain (arguably quite strong) conditions, it can be shown that the Laplace
+smoothing actually gives the optimal estimator of the <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>j</m:mi></m:msub></m:math>'s.</para>
+        <para id="id70577">Returning to our Naive Bayes classifier, with Laplace smoothing, we therefore obtain the
+following estimates of the parameters:</para>
+        <equation id="id70581">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mi>j</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msubsup>
+                          <m:mi>x</m:mi>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>∧</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mn>2</m:mn>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mi>j</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>0</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msubsup>
+                          <m:mi>x</m:mi>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>∧</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mn>2</m:mn>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id70885">(In practice, it usually doesn't matter much whether we apply Laplace smoothing to <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>y</m:mi></m:msub></m:math> or not,
+since we will typically have a fair fraction each of spam and non-spam messages, so
+<m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mi>y</m:mi></m:msub></m:math> will be a reasonable estimate of <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:math> and will be quite far from 0 anyway.)</para>
+      </section>
+      <section id="uid8">
+        <title>Event models for text classification</title>
+        <para id="id70953">To close off our discussion of generative learning algorithms, let's talk about one more
+model that is specifically for text classification. While Naive Bayes as we've presented
+it will work well for many classification problems, for text classification, there is
+a related model that does even better.</para>
+        <para id="id70958">In the specific context of text classification, Naive Bayes as presented uses the what's
+called the <emphasis effect="bold">multi-variate Bernoulli event model</emphasis>. In this model, we assumed that the
+way an email is generated is that first it is randomly determined (according to the class
+priors <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>) whether a spammer or non-spammer will send you your next message. Then,
+the person sending the email runs through the dictionary, deciding whether to include each word <m:math overflow="scroll"><m:mi>i</m:mi></m:math>
+in that email independently and according to the probabilities <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mo>|</m:mo><m:mi>y</m:mi></m:mrow></m:msub></m:mrow></m:math>. Thus,
+the probability of a message was given by <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow><m:msubsup><m:mo>∏</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>n</m:mi></m:msubsup><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.</para>
+        <para id="id71096">Here's a different model, called the <emphasis effect="bold">multinomial event model</emphasis>. To describe this model, we
+will use a different notation and set of features for representing emails. We let <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> denote the identity
+of the <m:math overflow="scroll"><m:mi>i</m:mi></m:math>-th word in the email. Thus, <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math> is now an integer taking values in <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mo>|</m:mo><m:mi>V</m:mi><m:mo>|</m:mo><m:mo>}</m:mo></m:mrow></m:math>,
+where <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>V</m:mi><m:mo>|</m:mo></m:mrow></m:math> is the size of our vocabulary (dictionary). An email of <m:math overflow="scroll"><m:mi>n</m:mi></m:math> words
+is now represented by a vector <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msub><m:mi>x</m:mi><m:mi>n</m:mi></m:msub><m:mo>)</m:mo></m:mrow></m:math> of length <m:math overflow="scroll"><m:mi>n</m:mi></m:math>; note that <m:math overflow="scroll"><m:mi>n</m:mi></m:math> can
+vary for different documents. For instance, if an email starts with “A NIPS ...,” then
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> (“a” is the first word in the dictionary), and <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub><m:mo>=</m:mo><m:mn>35000</m:mn></m:mrow></m:math> (if “nips” is the
+35000th word in the dictionary).</para>
+        <para id="id71298">In the multinomial event model, we assume that the way an email is generated is via
+a random process in which spam/non-spam is first determined (according to <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>) as before. Then,
+the sender of the email writes the email by first generating <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> from some multinomial
+distribution over words (<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>). Next, the second word <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:math> is chosen independently
+of <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> but from the same multinomial distribution, and similarly for <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>3</m:mn></m:msub></m:math>, <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>4</m:mn></m:msub></m:math>, and so on, until
+all <m:math overflow="scroll"><m:mi>n</m:mi></m:math> words of the email have been generated.
+Thus, the overall probability of a message is given by <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow><m:msubsup><m:mo>∏</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>n</m:mi></m:msubsup><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>. Note
+that this formula looks like the one we had earlier for the probability of a message under the
+multi-variate Bernoulli event model, but that the terms in the formula now mean very different things.
+In particular <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>|</m:mo><m:mi>y</m:mi></m:mrow></m:mrow></m:math> is now a multinomial, rather than a Bernoulli distribution.</para>
+        <para id="id71502">The parameters for our new model are <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mi>y</m:mi></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> as before,
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>k</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>j</m:mi></m:msub><m:mo>=</m:mo><m:mi>k</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:mrow></m:math> (for any <m:math overflow="scroll"><m:mi>j</m:mi></m:math>)
+and <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:msub><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>j</m:mi></m:msub><m:mo>=</m:mo><m:mi>k</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+Note that we have assumed that <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msub><m:mi>x</m:mi><m:mi>j</m:mi></m:msub><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math> is the same for all values of <m:math overflow="scroll"><m:mi>j</m:mi></m:math> (i.e., that the
+distribution according to which a word is generated does not depend on its position <m:math overflow="scroll"><m:mi>j</m:mi></m:math>
+within the email).</para>
+        <para id="id71695">If we are given a training set
+<m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>;</m:mo><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi><m:mo>}</m:mo></m:mrow></m:math> where <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:mrow><m:mo>(</m:mo><m:msubsup><m:mi>x</m:mi><m:mn>1</m:mn><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>,</m:mo><m:msubsup><m:mi>x</m:mi><m:mn>2</m:mn><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msubsup><m:mi>x</m:mi><m:msub><m:mi>n</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup><m:mo>)</m:mo></m:mrow></m:mrow></m:math> (here, <m:math overflow="scroll"><m:msub><m:mi>n</m:mi><m:mi>i</m:mi></m:msub></m:math> is the number of words in the <m:math overflow="scroll"><m:mi>i</m:mi></m:math>-training
+example), the likelihood of the data is given by</para>
+        <equation id="id71874">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:mrow>
+                    <m:mi mathvariant="script">L</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:mi>Φ</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>Φ</m:mi>
+                      <m:mrow>
+                        <m:mi>k</m:mi>
+                        <m:mo>|</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                      </m:mrow>
+                    </m:msub>
+                    <m:mo>,</m:mo>
+                    <m:msub>
+                      <m:mi>Φ</m:mi>
+                      <m:mrow>
+                        <m:mi>k</m:mi>
+                        <m:mo>|</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msub>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:munderover>
+                      <m:mo>∏</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>,</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd/>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:munderover>
+                      <m:mo>∏</m:mo>
+                      <m:mrow>
+                        <m:mi>i</m:mi>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:munderover>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:munderover>
+                        <m:mo>∏</m:mo>
+                        <m:mrow>
+                          <m:mi>j</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:msub>
+                          <m:mi>n</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                      </m:munderover>
+                      <m:mi>p</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msubsup>
+                          <m:mi>x</m:mi>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mo>|</m:mo>
+                        <m:mi>y</m:mi>
+                        <m:mo>;</m:mo>
+                        <m:msub>
+                          <m:mi>Φ</m:mi>
+                          <m:mrow>
+                            <m:mi>k</m:mi>
+                            <m:mo>|</m:mo>
+                            <m:mi>y</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>0</m:mn>
+                          </m:mrow>
+                        </m:msub>
+                        <m:mo>,</m:mo>
+                        <m:msub>
+                          <m:mi>Φ</m:mi>
+                          <m:mrow>
+                            <m:mi>k</m:mi>
+                            <m:mo>|</m:mo>
+                            <m:mi>y</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                        </m:msub>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mfenced>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>y</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:msub>
+                        <m:mi>Φ</m:mi>
+                        <m:mi>y</m:mi>
+                      </m:msub>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>.</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id72154">Maximizing this yields the maximum likelihood estimates of the parameters:</para>
+        <equation id="id72160">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mi>k</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>j</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:msub>
+                          <m:mi>n</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msubsup>
+                          <m:mi>x</m:mi>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mo>=</m:mo>
+                        <m:mi>k</m:mi>
+                        <m:mo>∧</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:msub>
+                        <m:mi>n</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mi>k</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>0</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>j</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:msub>
+                          <m:mi>n</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msubsup>
+                          <m:mi>x</m:mi>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mo>=</m:mo>
+                        <m:mi>k</m:mi>
+                        <m:mo>∧</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>0</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:msub>
+                        <m:mi>n</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mi>y</m:mi>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                      </m:mrow>
+                      <m:mi>m</m:mi>
+                    </m:mfrac>
+                    <m:mo>.</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id72575">If we were to apply Laplace smoothing (which needed in practice for good performance) when
+estimating <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>k</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>k</m:mi><m:mo>|</m:mo><m:mi>y</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math>, we add 1 to the numerators and <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>V</m:mi><m:mo>|</m:mo></m:mrow></m:math> to the
+denominators, and obtain:</para>
+        <equation id="id72645">
+          <m:math overflow="scroll" mode="display">
+            <m:mtable displaystyle="true">
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mi>k</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mfrac>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>j</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:msub>
+                          <m:mi>n</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msubsup>
+                          <m:mi>x</m:mi>
+                          <m:mi>j</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                        <m:mo>=</m:mo>
+                        <m:mi>k</m:mi>
+                        <m:mo>∧</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mo>∑</m:mo>
+                        <m:mrow>
+                          <m:mi>i</m:mi>
+                          <m:mo>=</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                        <m:mi>m</m:mi>
+                      </m:msubsup>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>{</m:mo>
+                        <m:msup>
+                          <m:mi>y</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>=</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>}</m:mo>
+                      </m:mrow>
+                      <m:msub>
+                        <m:mi>n</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                      <m:mo>+</m:mo>
+                      <m:mrow>
+                        <m:mo>|</m:mo>
+                        <m:mi>V</m:mi>
+                        <m:mo>|</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mfrac>
+                </m:mtd>
+              </m:mtr>
+              <m:mtr>
+                <m:mtd columnalign="right">
+                  <m:msub>
+                    <m:mi>Φ</m:mi>
+                    <m:mrow>
+                      <m:mi>k</m:mi>
+                      <m:mo>|</m:mo>
+                      <m:mi>y</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>0</m:mn>
+                    </m:mrow>
+                  </m:msub>
+                </m:mtd>
+                <m:mtd>
+                  <m:mo>=</m:mo>
+                </m:mtd>
+                <m:mtd columnalign="left">
+                  <m:mrow>
+                    <m:mfrac>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>j</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:msub>
+                            <m:mi>n</m:mi>
+                            <m:mi>i</m:mi>
+                          </m:msub>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msubsup>
+                            <m:mi>x</m:mi>
+                            <m:mi>j</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msubsup>
+                          <m:mo>=</m:mo>
+                          <m:mi>k</m:mi>
+                          <m:mo>∧</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>0</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                        <m:mo>+</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mrow>
+                        <m:msubsup>
+                          <m:mo>∑</m:mo>
+                          <m:mrow>
+                            <m:mi>i</m:mi>
+                            <m:mo>=</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mi>m</m:mi>
+                        </m:msubsup>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>{</m:mo>
+                          <m:msup>
+                            <m:mi>y</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>=</m:mo>
+                          <m:mn>0</m:mn>
+                          <m:mo>}</m:mo>
+                        </m:mrow>
+                        <m:msub>
+                          <m:mi>n</m:mi>
+                          <m:mi>i</m:mi>
+                        </m:msub>
+                        <m:mo>+</m:mo>
+                        <m:mrow>
+                          <m:mo>|</m:mo>
+                          <m:mi>V</m:mi>
+                          <m:mo>|</m:mo>
+                        </m:mrow>
+                      </m:mrow>
+                    </m:mfrac>
+                    <m:mo>.</m:mo>
+                  </m:mrow>
+                </m:mtd>
+              </m:mtr>
+            </m:mtable>
+          </m:math>
+        </equation>
+        <para id="id73020">While not necessarily the very best classification algorithm, the Naive Bayes classifier
+often works surprisingly well. It is often also a very good “first thing to try,”
+given its simplicity and ease of implementation.</para>
+      </section>
+    </section>
+  </content>
+</document>

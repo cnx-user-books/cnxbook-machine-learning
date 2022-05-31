@@ -1,0 +1,3889 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 9 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45915</md:content-id>
+  <md:title>Machine Learning Lecture 9 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>6cd8a1db-49c9-4b55-8a9d-d114a7cbdb6c</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>Factor analysis</title>
+      <para id="id69418">When we have data <m:math overflow="scroll"><m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math> that comes from a mixture of several Gaussians,
+the EM algorithm can be applied to fit a mixture model. In this
+setting, we usually imagine problems where we have sufficient data
+to be able to discern the multiple-Gaussian structure in the data. For instance,
+this would be the case if our training set size <m:math overflow="scroll"><m:mi>m</m:mi></m:math> was significantly
+larger than the dimension <m:math overflow="scroll"><m:mi>n</m:mi></m:math> of the data.</para>
+      <para id="id69472">Now, consider a setting in which <m:math overflow="scroll"><m:mrow><m:mi>n</m:mi><m:mo>≫</m:mo><m:mi>m</m:mi></m:mrow></m:math>.
+In such a problem, it might be difficult to model
+the data even with a single Gaussian, much less a mixture of Gaussian. Specifically,
+since the <m:math overflow="scroll"><m:mi>m</m:mi></m:math> data points span only a low-dimensional subspace of <m:math overflow="scroll"><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:math>, if we model
+the data as Gaussian, and estimate the mean and covariance using the usual
+maximum likelihood estimators,</para>
+      <equation id="id69516">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mi>μ</m:mi>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mfrac>
+                    <m:mn>1</m:mn>
+                    <m:mi>m</m:mi>
+                  </m:mfrac>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mo>Σ</m:mo>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mfrac>
+                    <m:mn>1</m:mn>
+                    <m:mi>m</m:mi>
+                  </m:mfrac>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>-</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>,</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id68968">we would find that the matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> is singular. This means that <m:math overflow="scroll"><m:msup><m:mo>Σ</m:mo><m:mrow><m:mo>-</m:mo><m:mn>1</m:mn></m:mrow></m:msup></m:math>
+does not exist, and <m:math overflow="scroll"><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:msup><m:mrow><m:mo>|</m:mo><m:mo>Σ</m:mo><m:mo>|</m:mo></m:mrow><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:mn>2</m:mn></m:mrow></m:msup><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>/</m:mo><m:mn>0</m:mn></m:mrow></m:math>. But both of these terms are needed
+in computing the usual density of a multivariate Gaussian distribution. Another way
+of stating this difficulty is that maximum likelihood estimates of the parameters
+result in a Gaussian that places all of its probability in the affine space spanned
+by the data,<footnote id="uid1">This is the set of points <m:math overflow="scroll"><m:mi>x</m:mi></m:math> satisfying <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>=</m:mo><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msub><m:mi>α</m:mi><m:mi>i</m:mi></m:msub><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>,
+for some <m:math overflow="scroll"><m:msub><m:mi>α</m:mi><m:mi>i</m:mi></m:msub></m:math>'s so that <m:math overflow="scroll"><m:mrow><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msub><m:mi>α</m:mi><m:mn>1</m:mn></m:msub><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>.</footnote> and this corresponds to a singular
+covariance matrix.</para>
+      <para id="id70027">More generally, unless <m:math overflow="scroll"><m:mi>m</m:mi></m:math> exceeds <m:math overflow="scroll"><m:mi>n</m:mi></m:math> by some reasonable amount, the maximum likelihood
+estimates of the mean and covariance may be quite poor. Nonetheless, we would still like to
+be able to fit a reasonable Gaussian model to the data, and perhaps capture some
+interesting covariance structure in the data. How can we do this?</para>
+      <para id="id70048">In the next section, we begin by reviewing two possible restrictions on <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>, ones
+that allow us to fit <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> with small amounts of data but
+neither of which will give a satisfactory solution to our problem. We next discuss some
+properties of Gaussians that will be needed later; specifically, how to find marginal
+and conditonal distributions of Gaussians. Finally, we present the factor analysis model,
+and EM for it.</para>
+    </section>
+    <section id="cid2">
+      <title>Restrictions of <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math></title>
+      <para id="id70087">If we do not have sufficient data to fit a full covariance matrix, we may place some
+restrictions on the space of matrices <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> that we will consider. For instance,
+we may
+choose to fit a covariance matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> that is diagonal. In this setting, the reader
+may easily verify that the maximum likelihood estimate of the covariance matrix is given by the
+diagonal matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> satisfying</para>
+      <equation id="id70117">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mo>Σ</m:mo>
+              <m:mrow>
+                <m:mi>j</m:mi>
+                <m:mi>j</m:mi>
+              </m:mrow>
+            </m:msub>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mi>m</m:mi>
+            </m:mfrac>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:msup>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msubsup>
+                  <m:mi>x</m:mi>
+                  <m:mi>j</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msubsup>
+                <m:mo>-</m:mo>
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mi>j</m:mi>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mn>2</m:mn>
+            </m:msup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id70200">Thus, <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>j</m:mi><m:mi>j</m:mi></m:mrow></m:msub></m:math> is just the empirical estimate of the variance of the <m:math overflow="scroll"><m:mi>j</m:mi></m:math>-th coordinate
+of the data.</para>
+      <para id="id70230">Recall that the contours of a Gaussian density are ellipses. A diagonal <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> corresponds
+to a Gaussian where the major axes of these ellipses are axis-aligned.</para>
+      <para id="id70242">Sometimes, we may place a further restriction on the covariance matrix that not only
+must it be diagonal, but its diagonal entries must all be equal. In this setting,
+we have <m:math overflow="scroll"><m:mrow><m:mo>Σ</m:mo><m:mo>=</m:mo><m:msup><m:mi>σ</m:mi><m:mn>2</m:mn></m:msup><m:mi>I</m:mi></m:mrow></m:math>, where <m:math overflow="scroll"><m:msup><m:mi>σ</m:mi><m:mn>2</m:mn></m:msup></m:math> is the parameter under our control.
+The maximum likelihood estimate of <m:math overflow="scroll"><m:msup><m:mi>σ</m:mi><m:mn>2</m:mn></m:msup></m:math> can be found to be:</para>
+      <equation id="id70295">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>σ</m:mi>
+              <m:mn>2</m:mn>
+            </m:msup>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mrow>
+                <m:mi>m</m:mi>
+                <m:mi>n</m:mi>
+              </m:mrow>
+            </m:mfrac>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>j</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>n</m:mi>
+            </m:munderover>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:msup>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msubsup>
+                  <m:mi>x</m:mi>
+                  <m:mi>j</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msubsup>
+                <m:mo>-</m:mo>
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mi>j</m:mi>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mn>2</m:mn>
+            </m:msup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id70393">This model corresponds to using Gaussians whose densities have contours that are
+circles (in 2 dimensions; or spheres/hyperspheres in higher dimensions).</para>
+      <para id="id70400">If we were fitting a full, unconstrained, covariance matrix <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> to data, it was
+necessary that <m:math overflow="scroll"><m:mrow><m:mi>m</m:mi><m:mo>≥</m:mo><m:mi>n</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:math> in order for the maximum likelihood estimate of <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> not
+to be singular. Under either of the two restrictions above, we may obtain non-singular
+<m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> when <m:math overflow="scroll"><m:mrow><m:mi>m</m:mi><m:mo>≥</m:mo><m:mn>2</m:mn></m:mrow></m:math>.</para>
+      <para id="id70460">However, restricting <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> to be diagonal also means modeling the different coordinates
+<m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>i</m:mi></m:msub></m:math>, <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mi>j</m:mi></m:msub></m:math> of the data as being uncorrelated and independent. Often, it would be nice to
+be able to capture some interesting correlation structure in the data. If we were to use
+either of the restrictions on <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> described above, we would therefore
+fail to do so. In this set of notes, we will describe the factor analysis model,
+which uses more parameters than the diagonal <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math> and captures some correlations
+in the data, but also without having to fit a full covariance matrix.</para>
+    </section>
+    <section id="cid3">
+      <title>Marginals and conditionals of Gaussians</title>
+      <para id="id70527">Before describing factor analysis, we digress to talk about how to find conditional
+and marginal distributions of random variables with a joint multivariate Gaussian distribution.</para>
+      <para id="id70532">Suppose we have a vector-valued random variable</para>
+      <equation id="id70536">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>x</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id70578">where <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>r</m:mi></m:msup></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>s</m:mi></m:msup></m:mrow></m:math>, and <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>r</m:mi><m:mo>+</m:mo><m:mi>s</m:mi></m:mrow></m:msup></m:mrow></m:math>. Suppose
+<m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mo>Σ</m:mo><m:mo>)</m:mo></m:mrow></m:math>, where</para>
+      <equation id="id70690">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>μ</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>1</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>,</m:mo>
+            <m:mspace width="1.em"/>
+            <m:mo>Σ</m:mo>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mo>Σ</m:mo>
+                      <m:mn>11</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mo>Σ</m:mo>
+                      <m:mn>12</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mo>Σ</m:mo>
+                      <m:mn>21</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:msub>
+                      <m:mo>Σ</m:mo>
+                      <m:mn>22</m:mn>
+                    </m:msub>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id70786">Here, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>r</m:mi></m:msup></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:msub><m:mi>μ</m:mi><m:mn>2</m:mn></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>s</m:mi></m:msup></m:mrow></m:math>, <m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mn>11</m:mn></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>r</m:mi><m:mo>×</m:mo><m:mi>r</m:mi></m:mrow></m:msup></m:mrow></m:math>,
+<m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mn>12</m:mn></m:msub><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>r</m:mi><m:mo>×</m:mo><m:mi>s</m:mi></m:mrow></m:msup></m:mrow></m:math>, and so on. Note that since covariance matrices
+are symmetric, <m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mn>12</m:mn></m:msub><m:mo>=</m:mo><m:msubsup><m:mo>Σ</m:mo><m:mrow><m:mn>21</m:mn></m:mrow><m:mi>T</m:mi></m:msubsup></m:mrow></m:math>.</para>
+      <para id="id70939">Under our assumptions, <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:math> are jointly multivariate Gaussian. What is the
+marginal distribution of <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math>? It is not hard to see that <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub></m:mrow></m:math>, and
+that 
+<m:math overflow="scroll">
+ <m:mrow>
+  <m:mi> Cov </m:mi>
+  <m:mrow>
+    <m:mo>(</m:mo>
+    <m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub>
+    <m:mo>)</m:mo>
+  </m:mrow>
+  <m:mo>=</m:mo>
+  <m:mi mathvariant="normal">E</m:mi>
+  <m:mrow>
+    <m:mo>[</m:mo>
+    <m:mrow>
+      <m:mo>(</m:mo>
+      <m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub>
+      <m:mo>-</m:mo>
+      <m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub>
+      <m:mo>)</m:mo>
+    </m:mrow>
+    <m:mrow>
+      <m:mo>(</m:mo>
+      <m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub>
+      <m:mo>-</m:mo>
+      <m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub>
+      <m:msub><m:mo>)</m:mo><m:mi>T</m:mi></m:msub>
+    </m:mrow>
+    <m:mo>]</m:mo>
+  </m:mrow>
+  <m:mo>=</m:mo>
+  <m:msub><m:mo>Σ</m:mo><m:mn>11</m:mn></m:msub>
+ </m:mrow>
+</m:math>. 
+
+To see that the latter
+is true, note that by definition of the joint covariance of 
+<m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:math>, we have
+that</para><equation id="id71131">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi> Cov </m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mi>x</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mo>Σ</m:mo>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mfenced separators="" open="[" close="]">
+                  <m:mtable>
+                    <m:mtr>
+                      <m:mtd>
+                        <m:msub>
+                          <m:mo>Σ</m:mo>
+                          <m:mn>11</m:mn>
+                        </m:msub>
+                      </m:mtd>
+                      <m:mtd>
+                        <m:msub>
+                          <m:mo>Σ</m:mo>
+                          <m:mn>12</m:mn>
+                        </m:msub>
+                      </m:mtd>
+                    </m:mtr>
+                    <m:mtr>
+                      <m:mtd>
+                        <m:msub>
+                          <m:mo>Σ</m:mo>
+                          <m:mn>21</m:mn>
+                        </m:msub>
+                      </m:mtd>
+                      <m:mtd>
+                        <m:msub>
+                          <m:mo>Σ</m:mo>
+                          <m:mn>22</m:mn>
+                        </m:msub>
+                      </m:mtd>
+                    </m:mtr>
+                  </m:mtable>
+                </m:mfenced>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>-</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>x</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:mtable>
+                        <m:mtr>
+                          <m:mtd>
+                            <m:mrow>
+                              <m:msub>
+                                <m:mi>x</m:mi>
+                                <m:mn>1</m:mn>
+                              </m:msub>
+                              <m:mo>-</m:mo>
+                              <m:msub>
+                                <m:mi>μ</m:mi>
+                                <m:mn>1</m:mn>
+                              </m:msub>
+                            </m:mrow>
+                          </m:mtd>
+                        </m:mtr>
+                        <m:mtr>
+                          <m:mtd>
+                            <m:mrow>
+                              <m:msub>
+                                <m:mi>x</m:mi>
+                                <m:mn>2</m:mn>
+                              </m:msub>
+                              <m:mo>-</m:mo>
+                              <m:msub>
+                                <m:mi>μ</m:mi>
+                                <m:mn>2</m:mn>
+                              </m:msub>
+                            </m:mrow>
+                          </m:mtd>
+                        </m:mtr>
+                      </m:mtable>
+                    </m:mfenced>
+                    <m:msup>
+                      <m:mfenced separators="" open="(" close=")">
+                        <m:mtable>
+                          <m:mtr>
+                            <m:mtd>
+                              <m:mrow>
+                                <m:msub>
+                                  <m:mi>x</m:mi>
+                                  <m:mn>1</m:mn>
+                                </m:msub>
+                                <m:mo>-</m:mo>
+                                <m:msub>
+                                  <m:mi>μ</m:mi>
+                                  <m:mn>1</m:mn>
+                                </m:msub>
+                              </m:mrow>
+                            </m:mtd>
+                          </m:mtr>
+                          <m:mtr>
+                            <m:mtd>
+                              <m:mrow>
+                                <m:msub>
+                                  <m:mi>x</m:mi>
+                                  <m:mn>2</m:mn>
+                                </m:msub>
+                                <m:mo>-</m:mo>
+                                <m:msub>
+                                  <m:mi>μ</m:mi>
+                                  <m:mn>2</m:mn>
+                                </m:msub>
+                              </m:mrow>
+                            </m:mtd>
+                          </m:mtr>
+                        </m:mtable>
+                      </m:mfenced>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mtable>
+                      <m:mtr>
+                        <m:mtd>
+                          <m:mrow>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:msub>
+                                <m:mi>x</m:mi>
+                                <m:mn>1</m:mn>
+                              </m:msub>
+                              <m:mo>-</m:mo>
+                              <m:msub>
+                                <m:mi>μ</m:mi>
+                                <m:mn>1</m:mn>
+                              </m:msub>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                            <m:msup>
+                              <m:mrow>
+                                <m:mo>(</m:mo>
+                                <m:msub>
+                                  <m:mi>x</m:mi>
+                                  <m:mn>1</m:mn>
+                                </m:msub>
+                                <m:mo>-</m:mo>
+                                <m:msub>
+                                  <m:mi>μ</m:mi>
+                                  <m:mn>1</m:mn>
+                                </m:msub>
+                                <m:mo>)</m:mo>
+                              </m:mrow>
+                              <m:mi>T</m:mi>
+                            </m:msup>
+                          </m:mrow>
+                        </m:mtd>
+                        <m:mtd>
+                          <m:mrow>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:msub>
+                                <m:mi>x</m:mi>
+                                <m:mn>1</m:mn>
+                              </m:msub>
+                              <m:mo>-</m:mo>
+                              <m:msub>
+                                <m:mi>μ</m:mi>
+                                <m:mn>1</m:mn>
+                              </m:msub>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                            <m:msup>
+                              <m:mrow>
+                                <m:mo>(</m:mo>
+                                <m:msub>
+                                  <m:mi>x</m:mi>
+                                  <m:mn>2</m:mn>
+                                </m:msub>
+                                <m:mo>-</m:mo>
+                                <m:msub>
+                                  <m:mi>μ</m:mi>
+                                  <m:mn>2</m:mn>
+                                </m:msub>
+                                <m:mo>)</m:mo>
+                              </m:mrow>
+                              <m:mi>T</m:mi>
+                            </m:msup>
+                          </m:mrow>
+                        </m:mtd>
+                      </m:mtr>
+                      <m:mtr>
+                        <m:mtd>
+                          <m:mrow>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:msub>
+                                <m:mi>x</m:mi>
+                                <m:mn>2</m:mn>
+                              </m:msub>
+                              <m:mo>-</m:mo>
+                              <m:msub>
+                                <m:mi>μ</m:mi>
+                                <m:mn>2</m:mn>
+                              </m:msub>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                            <m:msup>
+                              <m:mrow>
+                                <m:mo>(</m:mo>
+                                <m:msub>
+                                  <m:mi>x</m:mi>
+                                  <m:mn>1</m:mn>
+                                </m:msub>
+                                <m:mo>-</m:mo>
+                                <m:msub>
+                                  <m:mi>μ</m:mi>
+                                  <m:mn>1</m:mn>
+                                </m:msub>
+                                <m:mo>)</m:mo>
+                              </m:mrow>
+                              <m:mi>T</m:mi>
+                            </m:msup>
+                          </m:mrow>
+                        </m:mtd>
+                        <m:mtd>
+                          <m:mrow>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:msub>
+                                <m:mi>x</m:mi>
+                                <m:mn>2</m:mn>
+                              </m:msub>
+                              <m:mo>-</m:mo>
+                              <m:msub>
+                                <m:mi>μ</m:mi>
+                                <m:mn>2</m:mn>
+                              </m:msub>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                            <m:msup>
+                              <m:mrow>
+                                <m:mo>(</m:mo>
+                                <m:msub>
+                                  <m:mi>x</m:mi>
+                                  <m:mn>2</m:mn>
+                                </m:msub>
+                                <m:mo>-</m:mo>
+                                <m:msub>
+                                  <m:mi>μ</m:mi>
+                                  <m:mn>2</m:mn>
+                                </m:msub>
+                                <m:mo>)</m:mo>
+                              </m:mrow>
+                              <m:mi>T</m:mi>
+                            </m:msup>
+                          </m:mrow>
+                        </m:mtd>
+                      </m:mtr>
+                    </m:mtable>
+                  </m:mfenced>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id71628">Matching the upper-left subblocks in the matrices in the second and the last lines above
+gives the result.</para>
+      <para id="id71635">Since marginal distributions of Gaussians are themselves Gaussian, we therefore have
+that the marginal distribution of <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> is given by <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>μ</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mo>Σ</m:mo><m:mn>11</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.</para>
+      <para id="id71698">Also, we can ask, what is the conditional distribution of <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub></m:math> given <m:math overflow="scroll"><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub></m:math>?
+By referring to the definition of the multivariate Gaussian distribution, it
+can be shown that <m:math overflow="scroll"><m:mrow><m:msub><m:mi>x</m:mi><m:mn>1</m:mn></m:msub><m:mrow><m:mo>|</m:mo></m:mrow><m:msub><m:mi>x</m:mi><m:mn>2</m:mn></m:msub><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>μ</m:mi><m:mrow><m:mn>1</m:mn><m:mo>|</m:mo><m:mn>2</m:mn></m:mrow></m:msub><m:mo>,</m:mo><m:msub><m:mo>Σ</m:mo><m:mrow><m:mn>1</m:mn><m:mo>|</m:mo><m:mn>2</m:mn></m:mrow></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, where</para>
+      <equation id="uid2"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mrow>
+                    <m:mn>1</m:mn>
+                    <m:mo>|</m:mo>
+                    <m:mn>2</m:mn>
+                  </m:mrow>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:msub>
+                    <m:mi>μ</m:mi>
+                    <m:mn>1</m:mn>
+                  </m:msub>
+                  <m:mo>+</m:mo>
+                  <m:msub>
+                    <m:mo>Σ</m:mo>
+                    <m:mn>12</m:mn>
+                  </m:msub>
+                  <m:msubsup>
+                    <m:mo>Σ</m:mo>
+                    <m:mrow>
+                      <m:mn>22</m:mn>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msub>
+                      <m:mi>x</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                    <m:mo>-</m:mo>
+                    <m:msub>
+                      <m:mi>μ</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:msub>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>,</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+           
+          </m:mtable>
+        </m:math>
+      </equation><equation id="eip-814"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+           
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mo>Σ</m:mo>
+                  <m:mrow>
+                    <m:mn>1</m:mn>
+                    <m:mo>|</m:mo>
+                    <m:mn>2</m:mn>
+                  </m:mrow>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:msub>
+                    <m:mo>Σ</m:mo>
+                    <m:mn>11</m:mn>
+                  </m:msub>
+                  <m:mo>-</m:mo>
+                  <m:msub>
+                    <m:mo>Σ</m:mo>
+                    <m:mn>12</m:mn>
+                  </m:msub>
+                  <m:msubsup>
+                    <m:mo>Σ</m:mo>
+                    <m:mrow>
+                      <m:mn>22</m:mn>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:msub>
+                    <m:mo>Σ</m:mo>
+                    <m:mn>21</m:mn>
+                  </m:msub>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id71971">When working with the factor analysis model in the next section, these formulas for
+finding conditional and marginal distributions of Gaussians will be very useful.</para>
+    </section>
+    <section id="cid4">
+      <title>The Factor analysis model</title>
+      <para id="id71986">In the factor analysis model, we posit a joint distribution on <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow></m:math> as follows, where <m:math overflow="scroll"><m:mrow><m:mi>z</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>k</m:mi></m:msup></m:mrow></m:math>
+is a latent random variable:</para>
+      <equation id="id72032">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mi>z</m:mi>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>∼</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="script">N</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mn>0</m:mn>
+                  <m:mo>,</m:mo>
+                  <m:mi>I</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi>x</m:mi>
+                  <m:mo>|</m:mo>
+                  <m:mi>z</m:mi>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>∼</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="script">N</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mi>μ</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:mi>z</m:mi>
+                  <m:mo>,</m:mo>
+                  <m:mi>Ψ</m:mi>
+                  <m:mo>)</m:mo>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id72118">Here, the parameters of our model are the vector <m:math overflow="scroll"><m:mrow><m:mi>μ</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math>, the matrix
+<m:math overflow="scroll"><m:mrow><m:mi>Λ</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>n</m:mi><m:mo>×</m:mo><m:mi>k</m:mi></m:mrow></m:msup></m:mrow></m:math>, and the diagonal matrix <m:math overflow="scroll"><m:mrow><m:mi>Ψ</m:mi><m:mo>∈</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mrow><m:mi>n</m:mi><m:mo>×</m:mo><m:mi>n</m:mi></m:mrow></m:msup></m:mrow></m:math>.
+The value of <m:math overflow="scroll"><m:mi>k</m:mi></m:math> is usually chosen to be smaller than <m:math overflow="scroll"><m:mi>n</m:mi></m:math>.</para>
+      <para id="id72220">Thus, we imagine that each datapoint <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> is generated by sampling a <m:math overflow="scroll"><m:mi>k</m:mi></m:math> dimension
+multivariate Gaussian <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>. Then, it is mapped to a <m:math overflow="scroll"><m:mi>k</m:mi></m:math>-dimensional affine space of
+<m:math overflow="scroll"><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:math> by computing <m:math overflow="scroll"><m:mrow><m:mi>μ</m:mi><m:mo>+</m:mo><m:mi>Λ</m:mi><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>. Lastly, <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> is generated by adding
+covariance <m:math overflow="scroll"><m:mi>Ψ</m:mi></m:math> noise to <m:math overflow="scroll"><m:mrow><m:mi>μ</m:mi><m:mo>+</m:mo><m:mi>Λ</m:mi><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>.</para>
+      <para id="id72382">Equivalently (convince yourself that this is the case), we can therefore also define
+the factor analysis model according to</para>
+      <equation id="id72386">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mi>z</m:mi>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>∼</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="script">N</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mn>0</m:mn>
+                  <m:mo>,</m:mo>
+                  <m:mi>I</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mi>ϵ</m:mi>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>∼</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="script">N</m:mi>
+                  <m:mo>(</m:mo>
+                  <m:mn>0</m:mn>
+                  <m:mo>,</m:mo>
+                  <m:mi>Ψ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mi>x</m:mi>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>μ</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:mi>z</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>ϵ</m:mi>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id72487">where <m:math overflow="scroll"><m:mi>ϵ</m:mi></m:math> and <m:math overflow="scroll"><m:mi>z</m:mi></m:math> are independent.</para>
+      <para id="id72512">Let's work out exactly what distribution our model defines. Our random
+variables <m:math overflow="scroll"><m:mi>z</m:mi></m:math> and <m:math overflow="scroll"><m:mi>x</m:mi></m:math> have a joint Gaussian distribution</para>
+      <equation id="id72534">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mi>z</m:mi>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mi>x</m:mi>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>∼</m:mo>
+            <m:mi mathvariant="script">N</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>μ</m:mi>
+                <m:mrow>
+                  <m:mi>z</m:mi>
+                  <m:mi>x</m:mi>
+                </m:mrow>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:mo>Σ</m:mo>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id72589">We will now find <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mrow><m:mi>z</m:mi><m:mi>x</m:mi></m:mrow></m:msub></m:math> and <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>.</para>
+      <para id="id72622">We know that <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>, from the fact that <m:math overflow="scroll"><m:mrow><m:mi>z</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mi>I</m:mi><m:mo>)</m:mo></m:mrow></m:math>. Also, we have
+that</para>
+      <equation id="id72675">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mi>x</m:mi>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mi>μ</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:mi>z</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>ϵ</m:mi>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>μ</m:mi>
+                  <m:mo>+</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mi>z</m:mi>
+                  <m:mo>]</m:mo>
+                  <m:mo>+</m:mo>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mi>ϵ</m:mi>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>μ</m:mi>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id72788">Putting these together, we obtain</para>
+      <equation id="id72793">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>μ</m:mi>
+              <m:mrow>
+                <m:mi>z</m:mi>
+                <m:mi>x</m:mi>
+              </m:mrow>
+            </m:msub>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mover accent="true">
+                      <m:mn>0</m:mn>
+                      <m:mo>→</m:mo>
+                    </m:mover>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mi>μ</m:mi>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id72840">Next, to find, <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>, we need to calculate
+<m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>z</m:mi><m:mi>z</m:mi></m:mrow></m:msub><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:msup><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow></m:mrow></m:math> (the upper-left block of <m:math overflow="scroll"><m:mo>Σ</m:mo></m:math>),
+<m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>z</m:mi><m:mi>x</m:mi></m:mrow></m:msub><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:msup><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>x</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow></m:mrow></m:math> (upper-right block),
+and <m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>x</m:mi><m:mi>x</m:mi></m:mrow></m:msub><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>x</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:msup><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>x</m:mi><m:mo>]</m:mo></m:mrow><m:mo>)</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow></m:mrow></m:math> (lower-right block).</para>
+      <para id="id73100">Now, since <m:math overflow="scroll"><m:mrow><m:mi>z</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mi>I</m:mi><m:mo>)</m:mo></m:mrow></m:math>, we easily find that <m:math overflow="scroll"><m:mrow><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>z</m:mi><m:mi>z</m:mi></m:mrow></m:msub><m:mo>=</m:mo><m:mi> Cov </m:mi><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>I</m:mi></m:mrow></m:math>.
+Also,</para>
+      <equation id="id73166">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>z</m:mi>
+                    <m:mo>-</m:mo>
+                    <m:mi mathvariant="normal">E</m:mi>
+                    <m:mrow>
+                      <m:mo>[</m:mo>
+                      <m:mi>z</m:mi>
+                      <m:mo>]</m:mo>
+                    </m:mrow>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>x</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi mathvariant="normal">E</m:mi>
+                      <m:mrow>
+                        <m:mo>[</m:mo>
+                        <m:mi>x</m:mi>
+                        <m:mo>]</m:mo>
+                      </m:mrow>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mi>z</m:mi>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>+</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>z</m:mi>
+                      <m:mo>+</m:mo>
+                      <m:mi>ϵ</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mrow>
+                    <m:mo>[</m:mo>
+                    <m:mi>z</m:mi>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>]</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mrow>
+                    <m:mo>[</m:mo>
+                    <m:mi>z</m:mi>
+                    <m:msup>
+                      <m:mi>ϵ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>]</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id73366">In the last step, we used the fact that <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:msup><m:mi>z</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi> Cov </m:mi><m:mrow><m:mo>(</m:mo><m:mi>z</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> (since <m:math overflow="scroll"><m:mi>z</m:mi></m:math> has zero mean),
+and <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:msup><m:mi>ϵ</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:msup><m:mi>ϵ</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math> (since <m:math overflow="scroll"><m:mi>z</m:mi></m:math> and <m:math overflow="scroll"><m:mi>ϵ</m:mi></m:math> are independent,
+and hence the expectation of their product is the product of their expectations).
+Similarly, we can find <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>x</m:mi><m:mi>x</m:mi></m:mrow></m:msub></m:math> as follows:</para>
+      <equation id="id73520">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>x</m:mi>
+                    <m:mo>-</m:mo>
+                    <m:mi mathvariant="normal">E</m:mi>
+                    <m:mrow>
+                      <m:mo>[</m:mo>
+                      <m:mi>x</m:mi>
+                      <m:mo>]</m:mo>
+                    </m:mrow>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>x</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi mathvariant="normal">E</m:mi>
+                      <m:mrow>
+                        <m:mo>[</m:mo>
+                        <m:mi>x</m:mi>
+                        <m:mo>]</m:mo>
+                      </m:mrow>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>+</m:mo>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>z</m:mi>
+                    <m:mo>+</m:mo>
+                    <m:mi>ϵ</m:mi>
+                    <m:mo>-</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>+</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>z</m:mi>
+                      <m:mo>+</m:mo>
+                      <m:mi>ϵ</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mo>[</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:mi>z</m:mi>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi>ϵ</m:mi>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:mi>z</m:mi>
+                  <m:msup>
+                    <m:mi>ϵ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi>ϵ</m:mi>
+                  <m:msup>
+                    <m:mi>ϵ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>Λ</m:mi>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mrow>
+                    <m:mo>[</m:mo>
+                    <m:mi>z</m:mi>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>]</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mrow>
+                    <m:mo>[</m:mo>
+                    <m:mi>ϵ</m:mi>
+                    <m:msup>
+                      <m:mi>ϵ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>]</m:mo>
+                  </m:mrow>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>Λ</m:mi>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi>Ψ</m:mi>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id73834">Putting everything together, we therefore have that</para>
+      <equation id="uid3">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mtable>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mi>z</m:mi>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd>
+                    <m:mi>x</m:mi>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:mfenced>
+            <m:mo>∼</m:mo>
+            <m:mi mathvariant="script">N</m:mi>
+            <m:mfenced separators="" open="(" close=")">
+              <m:mfenced separators="" open="[" close="]">
+                <m:mtable>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mover accent="true">
+                        <m:mn>0</m:mn>
+                        <m:mo>→</m:mo>
+                      </m:mover>
+                    </m:mtd>
+                  </m:mtr>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mi>μ</m:mi>
+                    </m:mtd>
+                  </m:mtr>
+                </m:mtable>
+              </m:mfenced>
+              <m:mo>,</m:mo>
+              <m:mfenced separators="" open="[" close="]">
+                <m:mtable>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mi>I</m:mi>
+                    </m:mtd>
+                    <m:mtd>
+                      <m:msup>
+                        <m:mi>Λ</m:mi>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                    </m:mtd>
+                  </m:mtr>
+                  <m:mtr>
+                    <m:mtd>
+                      <m:mi>Λ</m:mi>
+                    </m:mtd>
+                    <m:mtd>
+                      <m:mrow>
+                        <m:mi>Λ</m:mi>
+                        <m:msup>
+                          <m:mi>Λ</m:mi>
+                          <m:mi>T</m:mi>
+                        </m:msup>
+                        <m:mo>+</m:mo>
+                        <m:mi>Ψ</m:mi>
+                      </m:mrow>
+                    </m:mtd>
+                  </m:mtr>
+                </m:mtable>
+              </m:mfenced>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id73955">Hence, we also see that the marginal distribution of <m:math overflow="scroll"><m:mi>x</m:mi></m:math> is given
+by <m:math overflow="scroll"><m:mrow><m:mi>x</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mo>(</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mi>Λ</m:mi><m:msup><m:mi>Λ</m:mi><m:mi>T</m:mi></m:msup><m:mo>+</m:mo><m:mi>Ψ</m:mi><m:mo>)</m:mo></m:mrow></m:math>. Thus, given a training set <m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi><m:mo>}</m:mo></m:mrow></m:math>,
+we can write down the log likelihood of the parameters:</para>
+      <equation id="id74051">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>ℓ</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>μ</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>Λ</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>Ψ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mo form="prefix">log</m:mo>
+            <m:munderover>
+              <m:mo>∏</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mrow>
+                <m:msup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mn>2</m:mn>
+                    <m:mi>π</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mi>n</m:mi>
+                    <m:mo>/</m:mo>
+                    <m:mn>2</m:mn>
+                  </m:mrow>
+                </m:msup>
+                <m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                    <m:mi>Λ</m:mi>
+                    <m:msup>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>+</m:mo>
+                    <m:mi>Ψ</m:mi>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mn>1</m:mn>
+                    <m:mo>/</m:mo>
+                    <m:mn>2</m:mn>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo form="prefix">exp</m:mo>
+            <m:mfenced separators="" open="(" close=")">
+              <m:mo>-</m:mo>
+              <m:mfrac>
+                <m:mn>1</m:mn>
+                <m:mn>2</m:mn>
+              </m:mfrac>
+              <m:msup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>-</m:mo>
+                  <m:mi>μ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msup>
+              <m:msup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>Λ</m:mi>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mo>+</m:mo>
+                  <m:mi>Ψ</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mrow>
+                  <m:mo>-</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+              </m:msup>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>-</m:mo>
+                <m:mi>μ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id74261">To perform maximum likelihood estimation, we would like to maximize this quantity with
+respect to the parameters. But maximizing this formula explicitly is hard (try it yourself),
+and we are aware of no algorithm that does so in closed-form.
+So, we will instead use to the EM algorithm. In the next section, we derive EM for
+factor analysis.</para>
+    </section>
+    <section id="cid5">
+      <title>EM for factor analysis</title>
+      <para id="id74280">The derivation for the E-step is easy. We need to
+compute <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mi>Λ</m:mi><m:mo>,</m:mo><m:mi>Ψ</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>. By substituting the
+distribution given in Equation <link target-id="uid3"/> into
+the formulas <link target-id="uid2"/>-<link target-id="eip-814"/> used for finding the conditional
+distribution of a Gaussian, we
+find that <m:math overflow="scroll"><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mi>Λ</m:mi><m:mo>,</m:mo><m:mi>Ψ</m:mi><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>μ</m:mi><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub><m:mo>,</m:mo><m:msub><m:mo>Σ</m:mo><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>,
+where</para><equation id="id74516">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:msup>
+                        <m:mi>Λ</m:mi>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                      <m:mo>+</m:mo>
+                      <m:mi>Ψ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>-</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>,</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:msub>
+                  <m:mo>Σ</m:mo>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                </m:msub>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:mi>I</m:mi>
+                  <m:mo>-</m:mo>
+                  <m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:msup>
+                        <m:mi>Λ</m:mi>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                      <m:mo>+</m:mo>
+                      <m:mi>Ψ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mrow>
+                      <m:mo>-</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mi>Λ</m:mi>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id74729">So, using these definitions for <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub></m:math>, we have</para>
+      <equation id="id74820">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mrow>
+                <m:msup>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mn>2</m:mn>
+                    <m:mi>π</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mi>k</m:mi>
+                    <m:mo>/</m:mo>
+                    <m:mn>2</m:mn>
+                  </m:mrow>
+                </m:msup>
+                <m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                    <m:msub>
+                      <m:mo>Σ</m:mo>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mrow>
+                          <m:mo>|</m:mo>
+                        </m:mrow>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                    </m:msub>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mn>1</m:mn>
+                    <m:mo>/</m:mo>
+                    <m:mn>2</m:mn>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+            </m:mfrac>
+            <m:mo form="prefix">exp</m:mo>
+            <m:mfenced separators="" open="(" close=")">
+              <m:mo>-</m:mo>
+              <m:mfrac>
+                <m:mn>1</m:mn>
+                <m:mn>2</m:mn>
+              </m:mfrac>
+              <m:msup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>-</m:mo>
+                  <m:msub>
+                    <m:mi>μ</m:mi>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>|</m:mo>
+                      </m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                  </m:msub>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msup>
+              <m:msubsup>
+                <m:mo>Σ</m:mo>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+                <m:mrow>
+                  <m:mo>-</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+              </m:msubsup>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>-</m:mo>
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id75115">Let's now work out the M-step. Here, we need to maximize</para>
+      <equation id="uid4">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:msub>
+              <m:mo>∫</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+            </m:msub>
+            <m:msub>
+              <m:mi>Q</m:mi>
+              <m:mi>i</m:mi>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo form="prefix">log</m:mo>
+            <m:mfrac>
+              <m:mrow>
+                <m:mi>p</m:mi>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>,</m:mo>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>;</m:mo>
+                <m:mi>μ</m:mi>
+                <m:mo>,</m:mo>
+                <m:mi>Λ</m:mi>
+                <m:mo>,</m:mo>
+                <m:mi>Ψ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mrow>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:mfrac>
+            <m:mi>d</m:mi>
+            <m:msup>
+              <m:mi>z</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msup>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id75290">with respect to the parameters <m:math overflow="scroll"><m:mrow><m:mi>μ</m:mi><m:mo>,</m:mo><m:mi>Λ</m:mi><m:mo>,</m:mo><m:mi>Ψ</m:mi></m:mrow></m:math>. We will work out only the
+optimization with respect to <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math>, and leave the derivations
+of the updates for <m:math overflow="scroll"><m:mi>μ</m:mi></m:math> and <m:math overflow="scroll"><m:mi>Ψ</m:mi></m:math> as an exercise to the reader.</para>
+      <para id="id75344">We can simplify Equation <link target-id="uid4"/> as follows:</para>
+      <equation id="uid5"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  
+                  <m:mrow/>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msub>
+                    <m:mo>∫</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:msub>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>|</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mi>Ψ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>+</m:mo>
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>-</m:mo>
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:msub>
+                      <m:mi>Q</m:mi>
+                      <m:mi>i</m:mi>
+                    </m:msub>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mfenced>
+                  <m:mi>d</m:mi>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msub>
+                    <m:mi mathvariant="normal">E</m:mi>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>∼</m:mo>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                  </m:msub>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>|</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>;</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mi>Ψ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>+</m:mo>
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:mi>p</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>-</m:mo>
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:msub>
+                      <m:mi>Q</m:mi>
+                      <m:mi>i</m:mi>
+                    </m:msub>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id75765">Here, the “<m:math overflow="scroll"><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∼</m:mo><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:mrow></m:math>” subscript indicates that the expectation is with respect to
+<m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> drawn from <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math>. In the subsequent development,
+we will omit this subscript when there is no risk of ambiguity.
+Dropping terms that do not depend on the
+parameters, we find that we need to maximize:</para>
+      <equation id="id75838"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  
+                  <m:mrow/>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo form="prefix">log</m:mo>
+                    <m:mi>p</m:mi>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>|</m:mo>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>;</m:mo>
+                    <m:mi>μ</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:mi>Λ</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:mi>Ψ</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo form="prefix">log</m:mo><m:mspace width="1pt"/>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mi>π</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mi>n</m:mi>
+                            <m:mo>/</m:mo>
+                            <m:mn>2</m:mn>
+                          </m:mrow>
+                        </m:msup>
+                        <m:msup>
+                          <m:mrow>
+                            <m:mo>|</m:mo>
+                            <m:mi>Ψ</m:mi>
+                            <m:mo>|</m:mo>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mn>1</m:mn>
+                            <m:mo>/</m:mo>
+                            <m:mn>2</m:mn>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                    </m:mfrac>
+                    <m:mo form="prefix">exp</m:mo>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:mo>-</m:mo>
+                      <m:mfrac>
+                        <m:mn>1</m:mn>
+                        <m:mn>2</m:mn>
+                      </m:mfrac>
+                      <m:msup>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msup>
+                            <m:mi>x</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>-</m:mo>
+                          <m:mi>μ</m:mi>
+                          <m:mo>-</m:mo>
+                          <m:mi>Λ</m:mi>
+                          <m:msup>
+                            <m:mi>z</m:mi>
+                            <m:mrow>
+                              <m:mo>(</m:mo>
+                              <m:mi>i</m:mi>
+                              <m:mo>)</m:mo>
+                            </m:mrow>
+                          </m:msup>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                        <m:mi>T</m:mi>
+                      </m:msup>
+                      <m:msup>
+                        <m:mi>Ψ</m:mi>
+                        <m:mrow>
+                          <m:mo>-</m:mo>
+                          <m:mn>1</m:mn>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>-</m:mo>
+                        <m:mi>μ</m:mi>
+                        <m:mo>-</m:mo>
+                        <m:mi>Λ</m:mi>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:mfenced>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo>-</m:mo>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mn>2</m:mn>
+                    </m:mfrac>
+                    <m:mo form="prefix">log</m:mo>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                      <m:mi>Ψ</m:mi>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:mo>-</m:mo>
+                    <m:mfrac>
+                      <m:mi>n</m:mi>
+                      <m:mn>2</m:mn>
+                    </m:mfrac>
+                    <m:mo form="prefix">log</m:mo>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>2</m:mn>
+                      <m:mi>π</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:mo>-</m:mo>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mn>2</m:mn>
+                    </m:mfrac>
+                    <m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>-</m:mo>
+                        <m:mi>μ</m:mi>
+                        <m:mo>-</m:mo>
+                        <m:mi>Λ</m:mi>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id76342">Let's maximize this with respect to <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math>. Only the last term above depends on <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math>.
+Taking derivatives, and using the facts that <m:math overflow="scroll"><m:mrow><m:mi> tr </m:mi><m:mspace width="0.166667em"/><m:mi>a</m:mi><m:mo>=</m:mo><m:mi>a</m:mi></m:mrow></m:math> (for <m:math overflow="scroll"><m:mrow><m:mi>a</m:mi><m:mo>∈</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math>), <m:math overflow="scroll"><m:mrow><m:mi> tr </m:mi><m:mi>A</m:mi><m:mi>B</m:mi><m:mo>=</m:mo><m:mi> tr </m:mi><m:mi>B</m:mi><m:mi>A</m:mi></m:mrow></m:math>,
+and <m:math overflow="scroll"><m:mrow><m:msub><m:mi>∇</m:mi><m:mi>A</m:mi></m:msub><m:mi> tr </m:mi><m:mi>A</m:mi><m:mi>B</m:mi><m:msup><m:mi>A</m:mi><m:mi>T</m:mi></m:msup><m:mi>C</m:mi><m:mo>=</m:mo><m:mi>C</m:mi><m:mi>A</m:mi><m:mi>B</m:mi><m:mo>+</m:mo><m:msup><m:mi>C</m:mi><m:mi>T</m:mi></m:msup><m:mi>A</m:mi><m:mi>B</m:mi></m:mrow></m:math>, we get:</para>
+      <equation id="id76481"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd/>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  
+                  <m:mrow/>
+                  <m:msub>
+                    <m:mi>∇</m:mi>
+                    <m:mi>Λ</m:mi>
+                  </m:msub>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mo>-</m:mo>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mn>2</m:mn>
+                    </m:mfrac>
+                    <m:msup>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>x</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>-</m:mo>
+                        <m:mi>μ</m:mi>
+                        <m:mo>-</m:mo>
+                        <m:mi>Λ</m:mi>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>-</m:mo>
+                      <m:mi>Λ</m:mi>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msub>
+                    <m:mi>∇</m:mi>
+                    <m:mi>Λ</m:mi>
+                  </m:msub>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo>-</m:mo>
+                    <m:mi> tr </m:mi>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mn>2</m:mn>
+                    </m:mfrac>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>+</m:mo>
+                    <m:mi> tr </m:mi>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:msub>
+                    <m:mi>∇</m:mi>
+                    <m:mi>Λ</m:mi>
+                  </m:msub>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo>-</m:mo>
+                    <m:mi> tr </m:mi>
+                    <m:mfrac>
+                      <m:mn>1</m:mn>
+                      <m:mn>2</m:mn>
+                    </m:mfrac>
+                    <m:msup>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>+</m:mo>
+                    <m:mi> tr </m:mi>
+                    <m:msup>
+                      <m:mi>Λ</m:mi>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:munderover>
+                    <m:mo>∑</m:mo>
+                    <m:mrow>
+                      <m:mi>i</m:mi>
+                      <m:mo>=</m:mo>
+                      <m:mn>1</m:mn>
+                    </m:mrow>
+                    <m:mi>m</m:mi>
+                  </m:munderover>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:mo>-</m:mo>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mi>Λ</m:mi>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                    <m:mo>+</m:mo>
+                    <m:msup>
+                      <m:mi>Ψ</m:mi>
+                      <m:mrow>
+                        <m:mo>-</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>-</m:mo>
+                      <m:mi>μ</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id77148">Setting this to zero and simplifying, we get:</para>
+      <equation id="id77154">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mi>Λ</m:mi>
+            <m:msub>
+              <m:mi mathvariant="normal">E</m:mi>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>∼</m:mo>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+              </m:mrow>
+            </m:msub>
+            <m:mfenced separators="" open="[" close="]">
+              <m:msup>
+                <m:mi>z</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:msup>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msup>
+            </m:mfenced>
+            <m:mo>=</m:mo>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>x</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>i</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+              </m:msup>
+              <m:mo>-</m:mo>
+              <m:mi>μ</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:msub>
+              <m:mi mathvariant="normal">E</m:mi>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>∼</m:mo>
+                <m:msub>
+                  <m:mi>Q</m:mi>
+                  <m:mi>i</m:mi>
+                </m:msub>
+              </m:mrow>
+            </m:msub>
+            <m:mfenced separators="" open="[" close="]">
+              <m:msup>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msup>
+            </m:mfenced>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id77354">Hence, solving for <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math>, we obtain</para>
+      <equation id="uid6">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>Λ</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="(" close=")">
+              <m:munderover>
+                <m:mo>∑</m:mo>
+                <m:mrow>
+                  <m:mi>i</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+                <m:mi>m</m:mi>
+              </m:munderover>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>-</m:mo>
+                <m:mi>μ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:msub>
+                <m:mi mathvariant="normal">E</m:mi>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mo>∼</m:mo>
+                  <m:msub>
+                    <m:mi>Q</m:mi>
+                    <m:mi>i</m:mi>
+                  </m:msub>
+                </m:mrow>
+              </m:msub>
+              <m:mfenced separators="" open="[" close="]">
+                <m:msup>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                  <m:mi>T</m:mi>
+                </m:msup>
+              </m:mfenced>
+            </m:mfenced>
+            <m:msup>
+              <m:mfenced separators="" open="(" close=")">
+                <m:munderover>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>i</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:munderover>
+                <m:msub>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mo>∼</m:mo>
+                    <m:msub>
+                      <m:mi>Q</m:mi>
+                      <m:mi>i</m:mi>
+                    </m:msub>
+                  </m:mrow>
+                </m:msub>
+                <m:mfenced separators="" open="[" close="]">
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:msup>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                </m:mfenced>
+              </m:mfenced>
+              <m:mrow>
+                <m:mo>-</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+            </m:msup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id77595">It is interesting to note the close relationship between this equation and
+the normal equation that we'd derived for least squares regression,</para>
+      <equation id="id77602">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mtext>``</m:mtext>
+            <m:mrow>
+              <m:msup>
+                <m:mi>θ</m:mi>
+                <m:mi>T</m:mi>
+              </m:msup>
+              <m:mo>=</m:mo>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>y</m:mi>
+                  <m:mi>T</m:mi>
+                </m:msup>
+                <m:mi>X</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:msup>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:msup>
+                    <m:mi>X</m:mi>
+                    <m:mi>T</m:mi>
+                  </m:msup>
+                  <m:mi>X</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mrow>
+                  <m:mo>-</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+              </m:msup>
+            </m:mrow>
+            <m:mtext>.''</m:mtext>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id77666">The analogy is that here, the <m:math overflow="scroll"><m:mi>x</m:mi></m:math>'s are a linear function of the <m:math overflow="scroll"><m:mi>z</m:mi></m:math>'s (plus noise). Given
+the “guesses” for <m:math overflow="scroll"><m:mi>z</m:mi></m:math> that the E-step has found, we will now try to estimate
+the unknown linearity <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math> relating the <m:math overflow="scroll"><m:mi>x</m:mi></m:math>'s and <m:math overflow="scroll"><m:mi>z</m:mi></m:math>'s. It is therefore no
+surprise that we obtain something similar to the normal equation. There is, however,
+one important difference between this and an algorithm that performs least squares using
+just the “best guesses” of the <m:math overflow="scroll"><m:mi>z</m:mi></m:math>'s; we will see this difference shortly.</para>
+      <para id="id77739">To complete our M-step update, let's work out the values of the expectations in Equation <link target-id="uid6"/>.
+From our definition of <m:math overflow="scroll"><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub></m:math> being Gaussian with mean <m:math overflow="scroll"><m:msub><m:mi>μ</m:mi><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub></m:math> and covariance <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub></m:math>, we
+easily find</para>
+      <equation id="id77848">
+        <m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:msub>
+                    <m:mi mathvariant="normal">E</m:mi>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>∼</m:mo>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                  </m:msub>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:msubsup>
+                  <m:mi>μ</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                  <m:mi>T</m:mi>
+                </m:msubsup>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd columnalign="right">
+                <m:mrow>
+                  <m:msub>
+                    <m:mi mathvariant="normal">E</m:mi>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mo>∼</m:mo>
+                      <m:msub>
+                        <m:mi>Q</m:mi>
+                        <m:mi>i</m:mi>
+                      </m:msub>
+                    </m:mrow>
+                  </m:msub>
+                  <m:mfenced separators="" open="[" close="]">
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:msup>
+                      <m:mrow>
+                        <m:msup>
+                          <m:mi>z</m:mi>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>i</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msup>
+                      </m:mrow>
+                      <m:mi>T</m:mi>
+                    </m:msup>
+                  </m:mfenced>
+                </m:mrow>
+              </m:mtd>
+              <m:mtd>
+                <m:mo>=</m:mo>
+              </m:mtd>
+              <m:mtd columnalign="left">
+                <m:mrow>
+                  <m:msub>
+                    <m:mi>μ</m:mi>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>|</m:mo>
+                      </m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                  </m:msub>
+                  <m:msubsup>
+                    <m:mi>μ</m:mi>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>|</m:mo>
+                      </m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                    <m:mi>T</m:mi>
+                  </m:msubsup>
+                  <m:mo>+</m:mo>
+                  <m:msub>
+                    <m:mo>Σ</m:mo>
+                    <m:mrow>
+                      <m:msup>
+                        <m:mi>z</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                      <m:mrow>
+                        <m:mo>|</m:mo>
+                      </m:mrow>
+                      <m:msup>
+                        <m:mi>x</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msup>
+                    </m:mrow>
+                  </m:msub>
+                  <m:mo>.</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation>
+      <para id="id78165">The latter comes from the fact that, for a random variable <m:math overflow="scroll"><m:mi>Y</m:mi></m:math>,
+<m:math overflow="scroll"><m:mrow><m:mi> Cov </m:mi><m:mrow><m:mo>(</m:mo><m:mi>Y</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Y</m:mi><m:msup><m:mi>Y</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>-</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Y</m:mi><m:mo>]</m:mo></m:mrow><m:mi mathvariant="normal">E</m:mi><m:msup><m:mrow><m:mo>[</m:mo><m:mi>Y</m:mi><m:mo>]</m:mo></m:mrow><m:mi>T</m:mi></m:msup></m:mrow></m:math>, and hence
+<m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Y</m:mi><m:msup><m:mi>Y</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow><m:mo>=</m:mo><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>Y</m:mi><m:mo>]</m:mo></m:mrow><m:mi mathvariant="normal">E</m:mi><m:msup><m:mrow><m:mo>[</m:mo><m:mi>Y</m:mi><m:mo>]</m:mo></m:mrow><m:mi>T</m:mi></m:msup><m:mo>+</m:mo><m:mi> Cov </m:mi><m:mrow><m:mo>(</m:mo><m:mi>Y</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+Substituting this back into Equation <link target-id="uid6"/>, we get the M-step update
+for <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math>:</para>
+      <equation id="uid7">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>Λ</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfenced separators="" open="(" close=")">
+              <m:munderover>
+                <m:mo>∑</m:mo>
+                <m:mrow>
+                  <m:mi>i</m:mi>
+                  <m:mo>=</m:mo>
+                  <m:mn>1</m:mn>
+                </m:mrow>
+                <m:mi>m</m:mi>
+              </m:munderover>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mo>-</m:mo>
+                <m:mi>μ</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:msubsup>
+                <m:mi>μ</m:mi>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msubsup>
+            </m:mfenced>
+            <m:msup>
+              <m:mfenced separators="" open="(" close=")">
+                <m:munderover>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>i</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:munderover>
+                <m:msub>
+                  <m:mi>μ</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                </m:msub>
+                <m:msubsup>
+                  <m:mi>μ</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                  <m:mi>T</m:mi>
+                </m:msubsup>
+                <m:mo>+</m:mo>
+                <m:msub>
+                  <m:mo>Σ</m:mo>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>z</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                    <m:mrow>
+                      <m:mo>|</m:mo>
+                    </m:mrow>
+                    <m:msup>
+                      <m:mi>x</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msup>
+                  </m:mrow>
+                </m:msub>
+              </m:mfenced>
+              <m:mrow>
+                <m:mo>-</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+            </m:msup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id78583">It is important to note the presence of the <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mrow><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mrow><m:mo>|</m:mo></m:mrow><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:msub></m:math> on the right
+hand side of this equation. This is the covariance in the posterior distribution
+<m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:math> of <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> give <m:math overflow="scroll"><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>, and the M-step must take into account this uncertainty
+about <m:math overflow="scroll"><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> in the posterior. A common mistake in deriving EM is to assume that in the E-step,
+we need to calculate only expectation <m:math overflow="scroll"><m:mrow><m:mi>E</m:mi><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow></m:math> of the latent random variable <m:math overflow="scroll"><m:mi>z</m:mi></m:math>,
+and then plug that into the optimization in the M-step everywhere <m:math overflow="scroll"><m:mi>z</m:mi></m:math> occurs.
+While this worked for simple problems such as the mixture of Gaussians, in our
+derivation for factor analysis,
+we needed <m:math overflow="scroll"><m:mrow><m:mi>E</m:mi><m:mo>[</m:mo><m:mi>z</m:mi><m:msup><m:mi>z</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow></m:math> as well <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow></m:math>; and as we saw,
+<m:math overflow="scroll"><m:mrow><m:mi>E</m:mi><m:mo>[</m:mo><m:mi>z</m:mi><m:msup><m:mi>z</m:mi><m:mi>T</m:mi></m:msup><m:mo>]</m:mo></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:mi mathvariant="normal">E</m:mi><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow><m:mi mathvariant="normal">E</m:mi><m:msup><m:mrow><m:mo>[</m:mo><m:mi>z</m:mi><m:mo>]</m:mo></m:mrow><m:mi>T</m:mi></m:msup></m:mrow></m:math> differ by the quantity <m:math overflow="scroll"><m:msub><m:mo>Σ</m:mo><m:mrow><m:mi>z</m:mi><m:mo>|</m:mo><m:mi>x</m:mi></m:mrow></m:msub></m:math>.
+Thus, the M-step update must take into account the covariance of <m:math overflow="scroll"><m:mi>z</m:mi></m:math>
+in the posterior distribution <m:math overflow="scroll"><m:mrow><m:mi>p</m:mi><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:math>.</para>
+      <para id="id78944">Lastly, we can also find the M-step optimizations for the parameters <m:math overflow="scroll"><m:mi>μ</m:mi></m:math> and <m:math overflow="scroll"><m:mi>Ψ</m:mi></m:math>.
+It is not hard to show that the first is given by</para>
+      <equation id="id78966">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>μ</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mi>m</m:mi>
+            </m:mfrac>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:msup>
+              <m:mi>x</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msup>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id79017">Since this doesn't change as the parameters are varied (i.e., unlike the update for <m:math overflow="scroll"><m:mi>Λ</m:mi></m:math>, the
+right hand side
+does not depend on <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Q</m:mi><m:mi>i</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>p</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>z</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>|</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>;</m:mo><m:mi>μ</m:mi><m:mo>,</m:mo><m:mi>Λ</m:mi><m:mo>,</m:mo><m:mi>Ψ</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, which in turn depends on the parameters),
+this can be calculated just once and needs not be further updated as the algorithm is
+run. Similarly, the diagonal <m:math overflow="scroll"><m:mi>Ψ</m:mi></m:math> can be found by calculating</para>
+      <equation id="id79128">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>Φ</m:mi>
+            <m:mo>=</m:mo>
+            <m:mfrac>
+              <m:mn>1</m:mn>
+              <m:mi>m</m:mi>
+            </m:mfrac>
+            <m:munderover>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:mi>i</m:mi>
+                <m:mo>=</m:mo>
+                <m:mn>1</m:mn>
+              </m:mrow>
+              <m:mi>m</m:mi>
+            </m:munderover>
+            <m:msup>
+              <m:mi>x</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msup>
+            <m:msup>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+              <m:mi>T</m:mi>
+            </m:msup>
+            <m:mo>-</m:mo>
+            <m:msup>
+              <m:mi>x</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:mi>i</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msup>
+            <m:msubsup>
+              <m:mi>μ</m:mi>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mrow>
+                  <m:mo>|</m:mo>
+                </m:mrow>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+              <m:mi>T</m:mi>
+            </m:msubsup>
+            <m:msup>
+              <m:mi>Λ</m:mi>
+              <m:mi>T</m:mi>
+            </m:msup>
+            <m:mo>-</m:mo>
+            <m:mi>Λ</m:mi>
+            <m:msub>
+              <m:mi>μ</m:mi>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>z</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+                <m:mrow>
+                  <m:mo>|</m:mo>
+                </m:mrow>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+            </m:msub>
+            <m:msup>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>x</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>i</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                </m:msup>
+              </m:mrow>
+              <m:mi>T</m:mi>
+            </m:msup>
+            <m:mo>+</m:mo>
+            <m:mi>Λ</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>μ</m:mi>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+              </m:msub>
+              <m:msubsup>
+                <m:mi>μ</m:mi>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+                <m:mi>T</m:mi>
+              </m:msubsup>
+              <m:mo>+</m:mo>
+              <m:msub>
+                <m:mo>Σ</m:mo>
+                <m:mrow>
+                  <m:msup>
+                    <m:mi>z</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                  <m:mrow>
+                    <m:mo>|</m:mo>
+                  </m:mrow>
+                  <m:msup>
+                    <m:mi>x</m:mi>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mi>i</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msup>
+                </m:mrow>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:msup>
+              <m:mi>Λ</m:mi>
+              <m:mi>T</m:mi>
+            </m:msup>
+            <m:mo>,</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id79448">and setting <m:math overflow="scroll"><m:mrow><m:msub><m:mi>Ψ</m:mi><m:mrow><m:mi>i</m:mi><m:mi>i</m:mi></m:mrow></m:msub><m:mo>=</m:mo><m:msub><m:mi>Φ</m:mi><m:mrow><m:mi>i</m:mi><m:mi>i</m:mi></m:mrow></m:msub></m:mrow></m:math> (i.e., letting <m:math overflow="scroll"><m:mi>Ψ</m:mi></m:math> be the diagonal matrix
+containing only the diagonal entries of <m:math overflow="scroll"><m:mi>Φ</m:mi></m:math>).</para>
+    </section>
+  </content>
+</document>

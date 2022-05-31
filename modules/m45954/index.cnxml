@@ -1,0 +1,1997 @@
+<document xmlns="http://cnx.rice.edu/cnxml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <title>Machine Learning Lecture 12 Course Notes</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45954</md:content-id>
+  <md:title>Machine Learning Lecture 12 Course Notes</md:title>
+  <md:abstract/>
+  <md:uuid>16fde3d6-3571-4be5-a0fc-a79cd01546f1</md:uuid>
+</metadata>
+
+<content>
+    <section id="cid1">
+      <title>Reinforcement Learning and Control</title>
+      <para id="id62200">We now begin our study of reinforcement learning and adaptive control.</para>
+      <para id="id62541">In supervised learning, we saw algorithms that tried to make their outputs
+mimic the labels <m:math overflow="scroll"><m:mi>y</m:mi></m:math> given in the training set. In that setting, the labels
+gave an unambiguous
+“right answer” for each of the inputs <m:math overflow="scroll"><m:mi>x</m:mi></m:math>. In contrast, for many sequential
+decision making and control problems, it is very difficult to provide this
+type of
+explicit supervision to a learning algorithm. For example, if we
+have just built a four-legged robot and are trying to program it to walk, then
+initially we have no idea what the “correct” actions to take are to make it
+walk, and so do not
+know how to provide explicit supervision for a learning algorithm to try to mimic.</para>
+      <para id="id62571">In the reinforcement learning framework, we will instead provide our algorithms
+only a reward function, which indicates to the learning agent when it
+is doing well, and when it is doing poorly.
+In the four-legged walking example, the reward function might give the
+robot positive rewards for moving forwards, and negative rewards for
+either moving backwards or falling over. It will then be the learning
+algorithm's job to figure out how to choose actions over time so as
+to obtain large rewards.</para>
+      <para id="id62578">Reinforcement learning has been successful in applications as diverse as
+autonomous helicopter flight, robot legged locomotion, cell-phone network
+routing, marketing strategy selection, factory control, and efficient
+web-page indexing.
+Our study of reinforcement learning will begin with a definition of the
+<emphasis effect="bold">Markov decision processes (MDP)</emphasis>, which provides the formalism in which
+RL problems are usually posed.</para>
+    </section>
+    <section id="cid2">
+      <title>Markov decision processes</title>
+      <para id="id62599">A Markov decision process is a tuple <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mi>S</m:mi><m:mo>,</m:mo><m:mi>A</m:mi><m:mo>,</m:mo><m:mrow><m:mo>{</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub><m:mo>}</m:mo></m:mrow><m:mo>,</m:mo><m:mi>γ</m:mi><m:mo>,</m:mo><m:mi>R</m:mi><m:mo>)</m:mo></m:mrow></m:math>, where:</para>
+      <list id="id62125" display="block" list-type="bulleted">
+        <item id="uid1"><m:math overflow="scroll"><m:mi>S</m:mi></m:math> is a set of <emphasis effect="bold">states</emphasis>. (For example, in autonomous helicopter flight,
+<m:math overflow="scroll"><m:mi>S</m:mi></m:math> might be the set of all possible positions and orientations of the helicopter.)
+</item>
+        <item id="uid2"><m:math overflow="scroll"><m:mi>A</m:mi></m:math> is a set of <emphasis effect="bold">actions</emphasis>. (For example, the set of all possible directions
+in which you can push the helicopter's control sticks.)
+</item>
+        <item id="uid3"><m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:math> are the state transition probabilities. For each state
+<m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>∈</m:mo><m:mi>S</m:mi></m:mrow></m:math> and action <m:math overflow="scroll"><m:mrow><m:mi>a</m:mi><m:mo>∈</m:mo><m:mi>A</m:mi></m:mrow></m:math>, <m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:math> is a distribution over the state space.
+We'll say more about this later, but briefly, <m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:math> gives the
+distribution over what states we will transition to if we take
+action <m:math overflow="scroll"><m:mi>a</m:mi></m:math> in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>.
+</item>
+        <item id="uid4"><m:math overflow="scroll"><m:mrow><m:mi>γ</m:mi><m:mo>∈</m:mo><m:mo>[</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:math> is called the <emphasis effect="bold">discount factor</emphasis>.
+</item>
+        <item id="uid5"><m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>:</m:mo><m:mi>S</m:mi><m:mo>×</m:mo><m:mi>A</m:mi><m:mo>↦</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math> is the <emphasis effect="bold">reward function</emphasis>.
+(Rewards are sometimes also written as a function of a state <m:math overflow="scroll"><m:mi>S</m:mi></m:math> only, in
+which case we would have <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>:</m:mo><m:mi>S</m:mi><m:mo>↦</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math>).
+</item>
+      </list>
+      <para id="id63096">The dynamics of an MDP proceeds as follows:
+We start in some state <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mn>0</m:mn></m:msub></m:math>, and get to choose some action <m:math overflow="scroll"><m:mrow><m:msub><m:mi>a</m:mi><m:mn>0</m:mn></m:msub><m:mo>∈</m:mo><m:mi>A</m:mi></m:mrow></m:math> to take
+in the MDP. As a result of our choice, the state of the MDP
+randomly transitions to some successor state <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mn>1</m:mn></m:msub></m:math>, drawn according
+to <m:math overflow="scroll"><m:mrow><m:msub><m:mi>s</m:mi><m:mn>1</m:mn></m:msub><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:msub><m:mi>s</m:mi><m:mn>0</m:mn></m:msub><m:msub><m:mi>a</m:mi><m:mn>0</m:mn></m:msub></m:mrow></m:msub></m:mrow></m:math>. Then, we get to pick another action <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mn>1</m:mn></m:msub></m:math>.
+As a result of this action, the state transitions again, now to
+some <m:math overflow="scroll"><m:mrow><m:msub><m:mi>s</m:mi><m:mn>2</m:mn></m:msub><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:msub><m:mi>s</m:mi><m:mn>1</m:mn></m:msub><m:msub><m:mi>a</m:mi><m:mn>1</m:mn></m:msub></m:mrow></m:msub></m:mrow></m:math>. We then pick <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mn>2</m:mn></m:msub></m:math>, and so on.... Pictorially,
+we can represent this process as follows:</para>
+      <equation id="id63249"><m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msub>
+              <m:mi>s</m:mi>
+              <m:mn>0</m:mn>
+            </m:msub>
+            <m:mover>
+              <m:mo>→</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>0</m:mn>
+              </m:msub>
+            </m:mover>
+            <m:msub>
+              <m:mi>s</m:mi>
+              <m:mn>1</m:mn>
+            </m:msub>
+            <m:mover>
+              <m:mo>→</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>1</m:mn>
+              </m:msub>
+            </m:mover>
+            <m:msub>
+              <m:mi>s</m:mi>
+              <m:mn>2</m:mn>
+            </m:msub>
+            <m:mover>
+              <m:mo>→</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>2</m:mn>
+              </m:msub>
+            </m:mover>
+            <m:msub>
+              <m:mi>s</m:mi>
+              <m:mn>3</m:mn>
+            </m:msub>
+            <m:mover>
+              <m:mo>→</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>3</m:mn>
+              </m:msub>
+            </m:mover>
+            <m:mo>...</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation><para id="id63337">Upon visiting the sequence of states <m:math overflow="scroll"><m:mrow><m:msub><m:mi>s</m:mi><m:mn>0</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mi>s</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo></m:mrow></m:math> with actions <m:math overflow="scroll"><m:mrow><m:msub><m:mi>a</m:mi><m:mn>0</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mi>a</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:mo>...</m:mo></m:mrow></m:math>,
+our total payoff is given by</para>
+      <equation id="id63396">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mn>0</m:mn>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>0</m:mn>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:mi>γ</m:mi>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mn>1</m:mn>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>1</m:mn>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:msup>
+              <m:mi>γ</m:mi>
+              <m:mn>2</m:mn>
+            </m:msup>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mn>2</m:mn>
+              </m:msub>
+              <m:mo>,</m:mo>
+              <m:msub>
+                <m:mi>a</m:mi>
+                <m:mn>2</m:mn>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:mo>⋯</m:mo>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id63499">Or, when we are writing rewards as a function of the states only, this becomes</para>
+      <equation id="id63505">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mn>0</m:mn>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:mi>γ</m:mi>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mn>1</m:mn>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:msup>
+              <m:mi>γ</m:mi>
+              <m:mn>2</m:mn>
+            </m:msup>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msub>
+                <m:mi>s</m:mi>
+                <m:mn>2</m:mn>
+              </m:msub>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:mo>⋯</m:mo>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id63579">For most of our development, we will use the simpler state-rewards <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math>, though
+the generalization to state-action rewards <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>,</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow></m:math> offers no special difficulties.</para>
+      <para id="id63620">Our goal in reinforcement learning is to choose actions over time so as
+to maximize the expected value of the total payoff:</para>
+      <equation id="id63625">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:mi mathvariant="normal">E</m:mi>
+            <m:mfenced separators="" open="[" close="]">
+              <m:mi>R</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mn>0</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:mi>γ</m:mi>
+              <m:mi>R</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mn>1</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:msup>
+                <m:mi>γ</m:mi>
+                <m:mn>2</m:mn>
+              </m:msup>
+              <m:mi>R</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mn>2</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:mo>⋯</m:mo>
+            </m:mfenced>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id63708">Note that the reward at timestep <m:math overflow="scroll"><m:mi>t</m:mi></m:math> is <emphasis effect="bold">discounted</emphasis> by a factor of <m:math overflow="scroll"><m:msup><m:mi>γ</m:mi><m:mi>t</m:mi></m:msup></m:math>.
+Thus, to make this expectation large, we would like to accrue positive rewards
+as soon as possible (and postpone negative rewards as long as possible). In
+economic applications where <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>(</m:mo><m:mo>·</m:mo><m:mo>)</m:mo></m:mrow></m:math> is the amount of money made, <m:math overflow="scroll"><m:mi>γ</m:mi></m:math> also has
+a natural interpretation in terms of the interest rate (where a dollar today is
+worth more than a dollar tomorrow).</para>
+      <para id="id63765">A <emphasis effect="bold">policy</emphasis> is any function <m:math overflow="scroll"><m:mrow><m:mi>π</m:mi><m:mo>:</m:mo><m:mi>S</m:mi><m:mo>↦</m:mo><m:mi>A</m:mi></m:mrow></m:math> mapping from the states to the
+actions. We say that we are <emphasis effect="bold">executing</emphasis> some policy <m:math overflow="scroll"><m:mi>π</m:mi></m:math> if, whenever we are
+in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, we take action <m:math overflow="scroll"><m:mrow><m:mi>a</m:mi><m:mo>=</m:mo><m:mi>π</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math>. We also define the <emphasis effect="bold">value function</emphasis>
+for a policy <m:math overflow="scroll"><m:mi>π</m:mi></m:math> according to</para>
+      <equation id="id63845">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mi>π</m:mi>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mi mathvariant="normal">E</m:mi>
+            <m:mfenced separators="" open="[" close="|">
+              <m:mi>R</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mn>0</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:mi>γ</m:mi>
+              <m:mi>R</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mn>1</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:msup>
+                <m:mi>γ</m:mi>
+                <m:mn>2</m:mn>
+              </m:msup>
+              <m:mi>R</m:mi>
+              <m:mrow>
+                <m:mo>(</m:mo>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mn>2</m:mn>
+                </m:msub>
+                <m:mo>)</m:mo>
+              </m:mrow>
+              <m:mo>+</m:mo>
+              <m:mo>⋯</m:mo>
+            </m:mfenced>
+            <m:msub>
+              <m:mi>s</m:mi>
+              <m:mn>0</m:mn>
+            </m:msub>
+            <m:mrow>
+              <m:mo>=</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>,</m:mo>
+              <m:mi>π</m:mi>
+              <m:mo>]</m:mo>
+              <m:mo>.</m:mo>
+            </m:mrow>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id63968"><m:math overflow="scroll"><m:mrow><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> is simply the expected sum of discounted rewards upon starting
+in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, and taking actions according to <m:math overflow="scroll"><m:mi>π</m:mi></m:math>.<footnote id="uid6">This notation
+in which we condition on <m:math overflow="scroll"><m:mi>π</m:mi></m:math> isn't technically correct because <m:math overflow="scroll"><m:mi>π</m:mi></m:math> isn't
+a random variable, but this is quite standard in the literature.</footnote></para>
+      <para id="id64034">Given a fixed policy <m:math overflow="scroll"><m:mi>π</m:mi></m:math>, its value function <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup></m:math> satisfies the
+<emphasis effect="bold">Bellman equations</emphasis>:</para>
+      <equation id="id64063">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mi>π</m:mi>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:mi>γ</m:mi>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>s</m:mi>
+                  <m:mo>'</m:mo>
+                </m:msup>
+                <m:mo>∈</m:mo>
+                <m:mi>S</m:mi>
+              </m:mrow>
+            </m:munder>
+            <m:msub>
+              <m:mi>P</m:mi>
+              <m:mrow>
+                <m:mi>s</m:mi>
+                <m:mi>π</m:mi>
+                <m:mo>(</m:mo>
+                <m:mi>s</m:mi>
+                <m:mo>)</m:mo>
+              </m:mrow>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>s</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mi>π</m:mi>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>s</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id64173">This says that the expected sum of discounted rewards <m:math overflow="scroll"><m:mrow><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> for
+starting in <m:math overflow="scroll"><m:mi>s</m:mi></m:math> consists of two terms: First, the <emphasis effect="bold">immediate reward</emphasis><m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math> that we get rightaway simply for starting in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, and second,
+the expected sum of future discounted rewards. Examining the second term
+in more detail, we see that the summation term above can be rewritten
+<m:math overflow="scroll"><m:mrow><m:msub><m:mi mathvariant="normal">E</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>π</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:msub></m:mrow></m:msub><m:mrow><m:mo>[</m:mo><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mo>]</m:mo></m:mrow></m:mrow></m:math>. This is the expected sum of
+discounted rewards for starting in state <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:math>, where <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:math> is distributed
+according <m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>π</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:msub></m:math>, which is the distribution over where we will end
+up after taking the first action <m:math overflow="scroll"><m:mrow><m:mi>π</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math> in the MDP from state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>.
+Thus, the second term above gives the expected sum of discounted rewards
+obtained <emphasis effect="italics">after</emphasis> the first step in the MDP.</para>
+      <para id="id64391">Bellman's equations can be used to efficiently solve for <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup></m:math>. Specifically,
+in a finite-state MDP (<m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo><m:mo>&lt;</m:mo><m:mi>∞</m:mi></m:mrow></m:math>), we can write down one such equation
+for <m:math overflow="scroll"><m:mrow><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> for every state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>. This gives us a set of <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo></m:mrow></m:math> linear
+equations in <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo></m:mrow></m:math> variables (the unknown <m:math overflow="scroll"><m:mrow><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>'s, one for each state), which
+can be efficiently solved for the <m:math overflow="scroll"><m:mrow><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>'s.</para>
+      <para id="id64535">We also define the <emphasis effect="bold">optimal value function</emphasis> according to</para>
+      <equation id="uid7">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mo>*</m:mo>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:munder>
+              <m:mo movablelimits="true" form="prefix">max</m:mo>
+              <m:mi>π</m:mi>
+            </m:munder>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mi>π</m:mi>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id64604">In other words, this is the best possible expected sum of discounted rewards
+that can be attained using any policy. There is also a version of Bellman's
+equations for the optimal value function:</para>
+      <equation id="uid8"><m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mo>*</m:mo>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mi>R</m:mi>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>+</m:mo>
+            <m:munder>
+              <m:mo movablelimits="true" form="prefix">max</m:mo>
+              <m:mrow>
+                <m:mi>a</m:mi>
+                <m:mo>∈</m:mo>
+                <m:mi>A</m:mi>
+              </m:mrow>
+            </m:munder><m:mspace width="1pt"/>
+            <m:mi>γ</m:mi>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>s</m:mi>
+                  <m:mo>'</m:mo>
+                </m:msup>
+                <m:mo>∈</m:mo>
+                <m:mi>S</m:mi>
+              </m:mrow>
+            </m:munder>
+            <m:msub>
+              <m:mi>P</m:mi>
+              <m:mrow>
+                <m:mi>s</m:mi>
+                <m:mi>a</m:mi>
+              </m:mrow>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>s</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mo>*</m:mo>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>s</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation><para id="id64740">The first term above is the immediate reward as before. The second term is
+the maximum over all actions <m:math overflow="scroll"><m:mi>a</m:mi></m:math> of the expected future sum of discounted
+rewards we'll get upon after action <m:math overflow="scroll"><m:mi>a</m:mi></m:math>. You should make sure you understand
+this equation and see why it makes sense.</para>
+      <para id="id64766">We also define a policy <m:math overflow="scroll"><m:mrow><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup><m:mo>:</m:mo><m:mi>S</m:mi><m:mo>↦</m:mo><m:mi>A</m:mi></m:mrow></m:math> as follows:</para>
+      <equation id="uid9"><m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>π</m:mi>
+              <m:mo>*</m:mo>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:mo form="prefix">arg</m:mo><m:mspace width="4pt"/>
+            <m:munder>
+              <m:mo movablelimits="true" form="prefix">max</m:mo>
+              <m:mrow>
+                <m:mi>a</m:mi>
+                <m:mo>∈</m:mo>
+                <m:mi>A</m:mi>
+              </m:mrow>
+            </m:munder>
+            <m:munder>
+              <m:mo>∑</m:mo>
+              <m:mrow>
+                <m:msup>
+                  <m:mi>s</m:mi>
+                  <m:mo>'</m:mo>
+                </m:msup>
+                <m:mo>∈</m:mo>
+                <m:mi>S</m:mi>
+              </m:mrow>
+            </m:munder>
+            <m:msub>
+              <m:mi>P</m:mi>
+              <m:mrow>
+                <m:mi>s</m:mi>
+                <m:mi>a</m:mi>
+              </m:mrow>
+            </m:msub>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>s</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mo>*</m:mo>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:msup>
+                <m:mi>s</m:mi>
+                <m:mo>'</m:mo>
+              </m:msup>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation><para id="id64913">Note that <m:math overflow="scroll"><m:mrow><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math> gives the action <m:math overflow="scroll"><m:mi>a</m:mi></m:math> that attains the maximum in
+the “max” in Equation <link target-id="uid8"/>.</para>
+      <para id="id64957">It is a fact that for every state <m:math overflow="scroll"><m:mi>s</m:mi></m:math> and every policy <m:math overflow="scroll"><m:mi>π</m:mi></m:math>, we have</para>
+      <equation id="id64978">
+        <m:math overflow="scroll" mode="display">
+          <m:mrow>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mo>*</m:mo>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>=</m:mo>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:msup>
+                <m:mi>π</m:mi>
+                <m:mo>*</m:mo>
+              </m:msup>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>≥</m:mo>
+            <m:msup>
+              <m:mi>V</m:mi>
+              <m:mi>π</m:mi>
+            </m:msup>
+            <m:mrow>
+              <m:mo>(</m:mo>
+              <m:mi>s</m:mi>
+              <m:mo>)</m:mo>
+            </m:mrow>
+            <m:mo>.</m:mo>
+          </m:mrow>
+        </m:math>
+      </equation>
+      <para id="id65045">The first equality says that the <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:msup></m:math>, the value function
+for <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math>, is equal to the optimal value function <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math> for every state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>.
+Further, the inequality above says that <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math>'s value is at least a large
+as the
+value of any other other policy. In other words, <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math> as defined in
+Equation <link target-id="uid9"/> is the optimal policy.</para>
+      <para id="id65144">Note that <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math> has the interesting property that it is the
+optimal policy for <emphasis effect="italics">all</emphasis> states <m:math overflow="scroll"><m:mi>s</m:mi></m:math>. Specifically, it is not the case
+that if we were starting in some state <m:math overflow="scroll"><m:mi>s</m:mi></m:math> then there'd be some optimal policy
+for that state, and if we were starting in some other state <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:math> then there'd
+be some other policy that's optimal policy for <m:math overflow="scroll"><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:math>. Specifically, the same
+policy <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math> attains the maximum in Equation <link target-id="uid7"/> for
+<emphasis effect="italics">all</emphasis> states <m:math overflow="scroll"><m:mi>s</m:mi></m:math>. This means that we can
+use the same policy <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math> no matter what the
+initial state of our MDP is.</para>
+    </section>
+    <section id="cid3">
+      <title>Value iteration and policy iteration</title>
+      <para id="id65276">We now describe two efficient algorithms for solving finite-state MDPs. For now,
+we will consider only MDPs with finite state and action spaces (<m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo><m:mo>&lt;</m:mo><m:mi>∞</m:mi><m:mo>,</m:mo><m:mspace width="0.277778em"/><m:mo>|</m:mo><m:mi>A</m:mi><m:mo>|</m:mo><m:mo>&lt;</m:mo><m:mi>∞</m:mi></m:mrow></m:math>).</para>
+      <para id="id65315">The first algorithm, <emphasis effect="bold">value iteration</emphasis>, is as follows:</para>
+      <list id="id65325" display="block" list-type="enumerated">
+        <item id="uid10">For each state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, initialize <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo><m:mo>:</m:mo><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>.
+</item>
+        <item id="uid11">Repeat until convergence <m:math overflow="scroll"><m:mo>{</m:mo></m:math><list id="id65392" display="block" list-type="bulleted"><item id="uid12"><label/>For every state, update
+<m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>:</m:mo><m:mo>=</m:mo><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mrow><m:mi>a</m:mi><m:mo>∈</m:mo><m:mi>A</m:mi></m:mrow></m:msub><m:mi>γ</m:mi><m:msub><m:mo>∑</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:msub><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+</item></list></item>
+        <item id="uid13">
+          <label/>
+          <m:math overflow="scroll">
+            <m:mo>}</m:mo>
+          </m:math>
+        </item>
+      </list>
+      <para id="id65536">This algorithm can be thought of as repeatedly trying to update the estimated
+value function using Bellman Equations <link target-id="uid8"/>.</para>
+      <para id="id65546">There are two possible ways of performing the updates in the inner loop of the
+algorithm. In the first, we can first compute the new values for <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math> for
+every state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, and then overwrite all the old values with the new values. This
+is called a <emphasis effect="bold">synchronous</emphasis> update. In this case, the algorithm can be
+viewed as implementing a “Bellman backup operator” that takes a current estimate
+of the value function, and maps it to a new estimate. (See homework problem for
+details.) Alternatively, we can also perform <emphasis effect="bold">asynchronous</emphasis> updates.
+Here, we would loop over the states (in some order), updating the values one at
+a time.</para>
+      <para id="id65592">Under either synchronous or asynchronous updates, it can be shown that
+value iteration will cause <m:math overflow="scroll"><m:mi>V</m:mi></m:math> to converge to <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math>.
+Having found <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math>, we can then use Equation <link target-id="uid9"/> to
+find the optimal policy.</para>
+      <para id="id65639">Apart from value iteration, there is a second standard algorithm for finding
+an optimal policy for an MDP. The <emphasis effect="bold">policy iteration</emphasis> algorithm proceeds as
+follows:</para>
+      <list id="id65649" display="block" list-type="enumerated">
+        <item id="uid14">Initialize <m:math overflow="scroll"><m:mi>π</m:mi></m:math> randomly.
+</item>
+        <item id="uid15">Repeat until convergence <m:math overflow="scroll"><m:mo>{</m:mo></m:math><list id="id65695" display="block" list-type="enumerated"><item id="uid16">Let <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>:</m:mo><m:mo>=</m:mo><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup></m:mrow></m:math>.
+</item><item id="uid17">For each state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, let
+<m:math overflow="scroll"><m:mrow><m:mi>π</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>:</m:mo><m:mo>=</m:mo><m:mo form="prefix">arg</m:mo><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mrow><m:mi>a</m:mi><m:mo>∈</m:mo><m:mi>A</m:mi></m:mrow></m:msub><m:msub><m:mo>∑</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:msub><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+</item></list></item>
+        <item id="uid18">
+          <label/>
+          <m:math overflow="scroll">
+            <m:mo>}</m:mo>
+          </m:math>
+        </item>
+      </list>
+      <para id="id65870">Thus, the inner-loop repeatedly computes the value function for the current
+policy, and then updates the policy using the current value function. (The policy
+<m:math overflow="scroll"><m:mi>π</m:mi></m:math> found in step (b) is also called the policy that is <emphasis effect="bold">greedy with respect
+to <m:math overflow="scroll"><m:mi>V</m:mi></m:math></emphasis>.) Note that step (a) can be done via solving Bellman's equations as
+described earlier, which in the case of a fixed policy, is just a set
+of <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo></m:mrow></m:math> linear equations in <m:math overflow="scroll"><m:mrow><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo></m:mrow></m:math> variables.</para>
+      <para id="id65927">After at most a finite number of iterations of this algorithm,
+<m:math overflow="scroll"><m:mi>V</m:mi></m:math> will converge to <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math>, and <m:math overflow="scroll"><m:mi>π</m:mi></m:math> will converge to <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math>.</para>
+      <para id="id65977">Both value iteration and policy iteration are standard algorithms for solving
+MDPs, and there isn't currently universal agreement over which algorithm is better.
+For small MDPs, policy iteration is often very
+fast and converges with very few iterations. However, for MDPs with large
+state spaces, solving for <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mi>π</m:mi></m:msup></m:math> explicitly would involve solving a large
+system of linear equations, and could be difficult. In these problems,
+value iteration may be preferred. For this reason, in practice
+value iteration seems to be used more often than policy iteration.</para>
+    </section>
+    <section id="cid4">
+      <title>Learning a model for an MDP</title>
+      <para id="id66009">So far, we have discussed MDPs and algorithms for MDPs assuming that the
+state transition probabilities and rewards are known. In many realistic problems,
+we are not given state transition probabilities and rewards explicitly, but
+must instead estimate them from data. (Usually, <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>,</m:mo><m:mi>A</m:mi></m:mrow></m:math> and <m:math overflow="scroll"><m:mi>γ</m:mi></m:math> are known.)</para>
+      <para id="id66038">For example, suppose that, for the inverted pendulum problem (see problem set 4),
+we had a number of trials in the MDP, that proceeded as follows:</para>
+      <equation id="id66043"><m:math overflow="scroll" mode="display">
+          <m:mtable displaystyle="true">
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mrow>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>0</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>0</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>2</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>2</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>3</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>1</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>3</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>1</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:mo>...</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mrow>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>0</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>2</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>0</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>1</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>2</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>1</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>2</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>2</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>2</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:msubsup>
+                    <m:mi>s</m:mi>
+                    <m:mn>3</m:mn>
+                    <m:mrow>
+                      <m:mo>(</m:mo>
+                      <m:mn>2</m:mn>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:msubsup>
+                  <m:mover>
+                    <m:mo>→</m:mo>
+                    <m:msubsup>
+                      <m:mi>a</m:mi>
+                      <m:mn>3</m:mn>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mn>2</m:mn>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                  </m:mover>
+                  <m:mo>...</m:mo>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+            <m:mtr>
+              <m:mtd/>
+              <m:mtd>
+                <m:mrow>
+                  <m:mo>...</m:mo>
+                  <m:mrow/>
+                </m:mrow>
+              </m:mtd>
+            </m:mtr>
+          </m:mtable>
+        </m:math>
+      </equation><para id="id66382">Here, <m:math overflow="scroll"><m:msubsup><m:mi>s</m:mi><m:mi>i</m:mi><m:mrow><m:mo>(</m:mo><m:mi>j</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> is the state we were at time <m:math overflow="scroll"><m:mi>i</m:mi></m:math> of trial <m:math overflow="scroll"><m:mi>j</m:mi></m:math>, and
+<m:math overflow="scroll"><m:msubsup><m:mi>a</m:mi><m:mi>i</m:mi><m:mrow><m:mo>(</m:mo><m:mi>j</m:mi><m:mo>)</m:mo></m:mrow></m:msubsup></m:math> is the corresponding action that was taken from that state.
+In practice, each of the trials above might be run until the MDP terminates
+(such as if the pole falls over in the inverted pendulum problem), or it might
+be run for some large but finite number of timesteps.</para>
+      <para id="id66452">Given this “experience” in the MDP consisting of a number of trials, we
+can then easily derive the maximum likelihood estimates for the state
+transition probabilities:</para>
+      <equation id="eip-121"><m:math>
+ <m:mrow>
+  <m:msub>
+   <m:mi>P</m:mi>
+   <m:mrow>
+    <m:mi>s</m:mi>
+    <m:mi>a</m:mi>
+   </m:mrow>
+  </m:msub>
+  <m:mtext>(</m:mtext>
+  <m:mi>s</m:mi>
+  <m:mtext>′</m:mtext>
+  <m:mtext>)</m:mtext>
+  <m:mfrac>
+   <m:mrow>
+    <m:mtext>#times took we action</m:mtext><m:mspace width="1pt"/>
+    <m:mo>a </m:mo>
+    <m:mtext>in state </m:mtext>
+    <m:mo>s</m:mo> 
+    <m:mtext>and got to </m:mtext>
+    <m:mo>s</m:mo>
+    <m:mtext>′</m:mtext>
+   </m:mrow>
+   <m:mrow>
+    <m:mtext>#times we took action</m:mtext><m:mspace width="1pt"/>
+    <m:mo>a </m:mo>
+    <m:mtext>in state </m:mtext>
+    <m:mo>s</m:mo> 
+   </m:mrow>
+  </m:mfrac>
+ </m:mrow>
+</m:math>
+
+</equation><para id="id66458">Or, if the ratio above is “0/0”—corresponding to the case of never having
+taken action <m:math overflow="scroll"><m:mi>a</m:mi></m:math> in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math> before—the we might simply estimate <m:math overflow="scroll"><m:mrow><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math> to
+be <m:math overflow="scroll"><m:mrow><m:mn>1</m:mn><m:mo>/</m:mo><m:mo>|</m:mo><m:mi>S</m:mi><m:mo>|</m:mo></m:mrow></m:math>. (I.e., estimate <m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:math> to be the uniform distribution over all states.)</para>
+      <para id="id66549">Note that, if we gain more experience (observe more trials) in the MDP, there is
+an efficient way to update our estimated state transition probabilities using
+the new experience.
+Specifically, if we keep around the counts for both the numerator and
+denominator terms of <link target-id="eip-121"/>, then as we observe more trials, we
+can simply keep accumulating those counts. Computing the ratio of these counts
+then given our estimate of <m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:math>.</para><para id="id66576">Using a similar procedure, if <m:math overflow="scroll"><m:mi>R</m:mi></m:math> is unknown, we can also pick our
+estimate of the expected immediate reward <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math> in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math> to be the average
+reward observed in state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>.</para>
+      <para id="id66623">Having learned a model for the MDP, we can then use either value iteration or
+policy iteration to solve the MDP using the estimated transition probabilities
+and rewards. For example, putting together model learning and value iteration,
+here is one possible algorithm for learning in an MDP with unknown state transition
+probabilities:</para>
+      <list id="id66629" display="block" list-type="enumerated">
+        <item id="uid19">Initialize <m:math overflow="scroll"><m:mi>π</m:mi></m:math> randomly.
+</item>
+        <item id="uid20">Repeat <m:math overflow="scroll"><m:mo>{</m:mo></m:math><list id="id66674" display="block" list-type="enumerated"><item id="uid21">Execute <m:math overflow="scroll"><m:mi>π</m:mi></m:math> in the MDP for some number of trials.
+</item><item id="uid22">Using the accumulated experience in the MDP, update our estimates for <m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:math>
+(and <m:math overflow="scroll"><m:mi>R</m:mi></m:math>, if applicable).
+</item><item id="uid23">Apply value iteration with the estimated state transition probabilities and
+rewards to get a new estimated value function <m:math overflow="scroll"><m:mi>V</m:mi></m:math>.
+</item><item id="uid24">Update <m:math overflow="scroll"><m:mi>π</m:mi></m:math> to be the greedy policy with respect to <m:math overflow="scroll"><m:mi>V</m:mi></m:math>.
+</item></list></item>
+        <item id="uid25">
+          <label/>
+          <m:math overflow="scroll">
+            <m:mo>}</m:mo>
+          </m:math>
+        </item>
+      </list>
+      <para id="id66811">can make it run much more quickly. Specifically, in the inner loop of the
+algorithm where we apply value iteration, if instead of initializing value
+iteration with <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>, we initialize it with the solution found during the
+previous iteration of our algorithm, then that will provide value iteration with
+a much better initial starting point and make it converge more quickly.</para>
+    </section>
+    <section id="cid5">
+      <title>Continuous state MDPs</title>
+      <para id="id66841">So far, we've focused our attention on MDPs with a finite number of states.
+We now discuss algorithms for MDPs that may have an infinite number of states. For example, for a car,
+we might represent the state as <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>,</m:mo><m:mover accent="true"><m:mi>x</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>y</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>θ</m:mi><m:mo>˙</m:mo></m:mover><m:mo>)</m:mo></m:mrow></m:math>,
+comprising its position <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>)</m:mo></m:mrow></m:math>; orientation <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>; velocity in the <m:math overflow="scroll"><m:mi>x</m:mi></m:math> and
+<m:math overflow="scroll"><m:mi>y</m:mi></m:math> directions <m:math overflow="scroll"><m:mover accent="true"><m:mi>x</m:mi><m:mo>˙</m:mo></m:mover></m:math> and <m:math overflow="scroll"><m:mover accent="true"><m:mi>y</m:mi><m:mo>˙</m:mo></m:mover></m:math>; and angular velocity <m:math overflow="scroll"><m:mover accent="true"><m:mi>θ</m:mi><m:mo>˙</m:mo></m:mover></m:math>. Hence, <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>=</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mn>6</m:mn></m:msup></m:mrow></m:math> is
+an infinite set of states, because there is an infinite number of possible positions
+and orientations for the car.<footnote id="uid26">Technically, <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> is an orientation and
+so the range of <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> is better written <m:math overflow="scroll"><m:mrow><m:mi>θ</m:mi><m:mo>∈</m:mo><m:mo>[</m:mo><m:mo>-</m:mo><m:mi>π</m:mi><m:mo>,</m:mo><m:mi>π</m:mi><m:mo>)</m:mo></m:mrow></m:math> than <m:math overflow="scroll"><m:mrow><m:mi>θ</m:mi><m:mo>∈</m:mo><m:mi mathvariant="double-struck">R</m:mi></m:mrow></m:math>; but for our purposes, this distinction is not important.</footnote> Similarly,
+the inverted pendulum you saw in PS4 has states <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>,</m:mo><m:mover accent="true"><m:mi>x</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>θ</m:mi><m:mo>˙</m:mo></m:mover><m:mo>)</m:mo></m:mrow></m:math>,
+where <m:math overflow="scroll"><m:mi>θ</m:mi></m:math> is the angle of the pole. And, a helicopter flying in 3d space
+has states of the form
+<m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mi>x</m:mi><m:mo>,</m:mo><m:mi>y</m:mi><m:mo>,</m:mo><m:mi>z</m:mi><m:mo>,</m:mo><m:mi>φ</m:mi><m:mo>,</m:mo><m:mi>θ</m:mi><m:mo>,</m:mo><m:mi>ψ</m:mi><m:mo>,</m:mo><m:mover accent="true"><m:mi>x</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>y</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>z</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>φ</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>θ</m:mi><m:mo>˙</m:mo></m:mover><m:mo>,</m:mo><m:mover accent="true"><m:mi>ψ</m:mi><m:mo>˙</m:mo></m:mover><m:mo>)</m:mo></m:mrow></m:math>,
+where here the roll <m:math overflow="scroll"><m:mi>φ</m:mi></m:math>, pitch <m:math overflow="scroll"><m:mi>θ</m:mi></m:math>, and yaw <m:math overflow="scroll"><m:mi>ψ</m:mi></m:math> angles specify the 3d
+orientation of the helicopter.</para>
+      <para id="id67273">In this section, we will consider settings where the state space is <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>=</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math>, and
+describe ways for solving such MDPs.</para>
+      <section id="uid27">
+        <title>Discretization</title>
+        <para id="id67308">Perhaps the simplest way to solve a continuous-state MDP is to discretize the
+state space, and then to use an algorithm like value iteration or policy
+iteration, as described previously.</para>
+        <para id="id67313">For example, if we have 2d states <m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:msub><m:mi>s</m:mi><m:mn>1</m:mn></m:msub><m:mo>,</m:mo><m:msub><m:mi>s</m:mi><m:mn>2</m:mn></m:msub><m:mo>)</m:mo></m:mrow></m:math>, we can use a grid to discretize
+the state space:</para>
+        <figure id="uid28"><media id="uid28_media" alt="a normal grid">
+            <image mime-type="image/png" src="../../media/gridDiscretization.png" id="uid28_onlineimage" width="523"><!-- NOTE: attribute width changes image size online (pixels). original width is 523. --></image>
+            <image mime-type="application/postscript" for="pdf" src="../../media/gridDiscretization.eps" id="uid28_printimage"/>
+          </media>
+        </figure><para id="id67355">Here, each grid cell represents a separate discrete state <m:math overflow="scroll"><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover></m:math>.
+We can then approximate the continuous-state MDP via a discrete-state one
+<m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mover accent="true"><m:mi>S</m:mi><m:mo>¯</m:mo></m:mover><m:mo>,</m:mo><m:mi>A</m:mi><m:mo>,</m:mo><m:mrow><m:mo>{</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover><m:mi>a</m:mi></m:mrow></m:msub><m:mo>}</m:mo></m:mrow><m:mo>,</m:mo><m:mi>γ</m:mi><m:mo>,</m:mo><m:mi>R</m:mi><m:mo>)</m:mo></m:mrow></m:math>, where <m:math overflow="scroll"><m:mover accent="true"><m:mi>S</m:mi><m:mo>¯</m:mo></m:mover></m:math> is the set of
+discrete states,
+<m:math overflow="scroll"><m:mrow><m:mo>{</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover><m:mi>a</m:mi></m:mrow></m:msub><m:mo>}</m:mo></m:mrow></m:math> are our state transition probabilities over the discrete
+states, and so on. We can then use value iteration or policy iteration
+to solve for the <m:math overflow="scroll"><m:mrow><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover><m:mo>)</m:mo></m:mrow></m:mrow></m:math> and <m:math overflow="scroll"><m:mrow><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover><m:mo>)</m:mo></m:mrow></m:mrow></m:math> in the discrete state
+MDP
+<m:math overflow="scroll"><m:mrow><m:mo>(</m:mo><m:mover accent="true"><m:mi>S</m:mi><m:mo>¯</m:mo></m:mover><m:mo>,</m:mo><m:mi>A</m:mi><m:mo>,</m:mo><m:mrow><m:mo>{</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover><m:mi>a</m:mi></m:mrow></m:msub><m:mo>}</m:mo></m:mrow><m:mo>,</m:mo><m:mi>γ</m:mi><m:mo>,</m:mo><m:mi>R</m:mi><m:mo>)</m:mo></m:mrow></m:math>. When our actual system is in
+some continuous-valued state <m:math overflow="scroll"><m:mrow><m:mi>s</m:mi><m:mo>∈</m:mo><m:mi>S</m:mi></m:mrow></m:math> and we need to pick an action to execute, we compute the corresponding
+discretized state <m:math overflow="scroll"><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover></m:math>, and execute action <m:math overflow="scroll"><m:mrow><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup><m:mrow><m:mo>(</m:mo><m:mover accent="true"><m:mi>s</m:mi><m:mo>¯</m:mo></m:mover><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.</para>
+        <para id="id67661">two downsides. First, it uses a fairly naive representation
+for <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math> (and <m:math overflow="scroll"><m:msup><m:mi>π</m:mi><m:mo>*</m:mo></m:msup></m:math>). Specifically, it assumes that the value
+function is takes a constant value over each of the discretization intervals
+(i.e., that the value function is piecewise constant in each of the gridcells).</para>
+        <para id="id67696">To better understand the limitations of such a representation, consider
+a <emphasis effect="italics">supervised learning</emphasis> problem of fitting
+a function to this dataset:</para>
+        <figure id="uid29"><media id="uid29_media" alt="graph. roughly x=y">
+            <image mime-type="image/png" src="../../media/linearData.png" id="uid29_onlineimage" width="488"><!-- NOTE: attribute width changes image size online (pixels). original width is 488. --></image>
+            <image mime-type="application/postscript" for="pdf" src="../../media/linearData.eps" id="uid29_printimage"/>
+          </media>
+        </figure><para id="id67714">Clearly, linear regression would do fine on this problem. However, if we instead
+discretize the <m:math overflow="scroll"><m:mi>x</m:mi></m:math>-axis, and then use a
+representation that is piecewise constant in each
+of the discretization intervals, then our fit to the data would look
+like this:</para>
+        <figure id="uid30"><media id="uid30_media" alt="the above data set, with a stepwise line added">
+            <image mime-type="image/png" src="../../media/staircase.png" id="uid30_onlineimage" width="488"><!-- NOTE: attribute width changes image size online (pixels). original width is 488. --></image>
+            <image mime-type="application/postscript" for="pdf" src="../../media/staircase.eps" id="uid30_printimage"/>
+          </media>
+        </figure><para id="id67737">This piecewise constant representation just isn't a good representation for
+many smooth functions. It results in little smoothing over the inputs, and no
+generalization over the different grid cells. Using this sort of representation,
+we would also need a very fine discretization (very small grid cells) to get a good approximation.</para>
+        <para id="id67743">A second downside of this representation is called the <emphasis effect="bold">curse of
+dimensionality</emphasis>. Suppose <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>=</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math>, and we discretize each of the <m:math overflow="scroll"><m:mi>n</m:mi></m:math>
+dimensions of the state
+into <m:math overflow="scroll"><m:mi>k</m:mi></m:math> values. Then the total number of discrete states we have is
+<m:math overflow="scroll"><m:msup><m:mi>k</m:mi><m:mi>n</m:mi></m:msup></m:math>. This grows exponentially quickly in the dimension of the state space <m:math overflow="scroll"><m:mi>n</m:mi></m:math>,
+and thus does not scale well to large problems. For example, with a 10d state,
+if we discretize each state variable into 100 values, we would have
+<m:math overflow="scroll"><m:mrow><m:msup><m:mn>100</m:mn><m:mn>10</m:mn></m:msup><m:mo>=</m:mo><m:msup><m:mn>10</m:mn><m:mn>20</m:mn></m:msup></m:mrow></m:math> discrete states, which is far too many to represent even on
+a modern desktop computer.</para>
+        <para id="id67845">As a rule of thumb, discretization usually works extremely well for 1d and 2d
+problems (and has the advantage of being simple and quick to implement).
+Perhaps with a little bit of cleverness and some care in choosing the
+discretization method, it often works well for problems with up to 4d states. If
+you're extremely clever, and somewhat lucky, you may even get it to work for
+some 6d problems. But it very rarely works for problems any higher
+dimensional than that.</para>
+      </section>
+      <section id="uid31">
+        <title>Value function approximation</title>
+        <para id="id67862">We now describe an alternative method for finding policies in continuous-state MDPs, in
+which we approximate <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math>
+directly, without resorting to discretization. This approach, caled value function
+approximation, has been successfully applied to many RL problems.</para>
+        <section id="uid32">
+          <title>Using a model or simulator</title>
+          <para id="id67890">To develop a value function approximation algorithm, we will assume that we have a <emphasis effect="bold">model</emphasis>, or <emphasis effect="bold">simulator</emphasis>, for the MDP.
+Informally, a simulator is a black-box that takes as input any (continuous-valued) state <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub></m:math> and action <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:math>,
+and outputs a next-state <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> sampled according to the state transition probabilities
+<m:math overflow="scroll"><m:msub><m:mi>P</m:mi><m:mrow><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:mrow></m:msub></m:math>:</para>
+          <figure id="uid33"><media id="uid33_media" alt="s_t and a_t enter into a simulator and the products are s_t+1 equivilant to P_sa">
+              <image mime-type="image/png" src="../../media/simulator.png" id="uid33_onlineimage" width="800"><!-- NOTE: attribute width changes image size online (pixels). original width is 1167. --></image>
+              <image mime-type="application/postscript" for="pdf" src="../../media/simulator.eps" id="uid33_printimage"/>
+            </media>
+          </figure><para id="id67992">simulation. For example, the simulator for the inverted pendulum in PS4 was
+obtained by using the laws of physics to calculate what position and
+orientation the cart/pole will be in at time <m:math overflow="scroll"><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:math>, given the current state at
+time <m:math overflow="scroll"><m:mi>t</m:mi></m:math> and the action <m:math overflow="scroll"><m:mi>a</m:mi></m:math> taken, assuming that we know all the parameters of
+the system such as the length of the pole, the mass of the pole, and so on.
+Alternatively, one can also use an off-the-shelf physics simulation software
+package which takes as input a complete physical description of a mechanical
+system, the current state <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub></m:math> and action <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:math>, and computes the state
+<m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> of the system a small fraction of a second into the
+future.<footnote id="uid34">Open Dynamics Engine (http://www.ode.com) is one example of
+a free/open-source physics simulator that can be used to simulate systems like the
+inverted pendulum, and that has been a reasonably popular choice among RL
+researchers.</footnote></para>
+          <para id="id68090">An alternative way to get a model is to learn one from data collected in the MDP. For example, suppose we
+execute <m:math overflow="scroll"><m:mi>m</m:mi></m:math><emphasis effect="bold">trials</emphasis> in which we repeatedly take actions in an MDP, each trial
+for <m:math overflow="scroll"><m:mi>T</m:mi></m:math> timesteps. This can be done picking actions at random, executing some specific policy,
+or via some other way of choosing actions. We would then observe <m:math overflow="scroll"><m:mi>m</m:mi></m:math> state sequences like the following:</para>
+          <equation id="id68129"><m:math overflow="scroll" mode="display">
+              <m:mtable displaystyle="true">
+                <m:mtr>
+                  <m:mtd/>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>0</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>0</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>1</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>1</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>1</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>2</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>2</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>1</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:mo>⋯</m:mo>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mrow>
+                            <m:mi>T</m:mi>
+                            <m:mo>-</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>1</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mi>T</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>1</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd/>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>0</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>2</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>0</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>2</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>1</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>2</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>2</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>2</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:mo>⋯</m:mo>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mrow>
+                            <m:mi>T</m:mi>
+                            <m:mo>-</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mn>2</m:mn>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mi>T</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mn>2</m:mn>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd/>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:mo>⋯</m:mo>
+                      <m:mrow/>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd/>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>0</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>m</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>0</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>m</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>1</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>m</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>1</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>m</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mn>2</m:mn>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>m</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mn>2</m:mn>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>m</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:mo>⋯</m:mo>
+                      <m:mover>
+                        <m:mo>→</m:mo>
+                        <m:msubsup>
+                          <m:mi>a</m:mi>
+                          <m:mrow>
+                            <m:mi>T</m:mi>
+                            <m:mo>-</m:mo>
+                            <m:mn>1</m:mn>
+                          </m:mrow>
+                          <m:mrow>
+                            <m:mo>(</m:mo>
+                            <m:mi>m</m:mi>
+                            <m:mo>)</m:mo>
+                          </m:mrow>
+                        </m:msubsup>
+                      </m:mover>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mi>T</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>m</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:math>
+          </equation><para id="id68637">We can then apply a learning algorithm to predict <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> as a function of <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:math>.</para>
+          <para id="id68692">For example, one may choose to learn a linear model of the form</para>
+          <equation id="uid35">
+            <m:math overflow="scroll" mode="display">
+              <m:mrow>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mrow>
+                    <m:mi>t</m:mi>
+                    <m:mo>+</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                </m:msub>
+                <m:mo>=</m:mo>
+                <m:mi>A</m:mi>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mi>t</m:mi>
+                </m:msub>
+                <m:mo>+</m:mo>
+                <m:mi>B</m:mi>
+                <m:msub>
+                  <m:mi>a</m:mi>
+                  <m:mi>t</m:mi>
+                </m:msub>
+                <m:mo>,</m:mo>
+              </m:mrow>
+            </m:math>
+          </equation>
+          <para id="id68748">using an algorithm similar to linear regression. Here, the parameters of the model are
+the matrices <m:math overflow="scroll"><m:mi>A</m:mi></m:math> and <m:math overflow="scroll"><m:mi>B</m:mi></m:math>, and we can estimate them using the data collected from our <m:math overflow="scroll"><m:mi>m</m:mi></m:math> trials,
+by picking</para>
+          <equation id="id68781">
+            <m:math overflow="scroll" mode="display">
+              <m:mrow>
+                <m:mo form="prefix">arg</m:mo>
+                <m:munder>
+                  <m:mo movablelimits="true" form="prefix">min</m:mo>
+                  <m:mrow>
+                    <m:mi>A</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:mi>B</m:mi>
+                  </m:mrow>
+                </m:munder>
+                <m:munderover>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>i</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                  <m:mi>m</m:mi>
+                </m:munderover>
+                <m:munderover>
+                  <m:mo>∑</m:mo>
+                  <m:mrow>
+                    <m:mi>t</m:mi>
+                    <m:mo>=</m:mo>
+                    <m:mn>0</m:mn>
+                  </m:mrow>
+                  <m:mrow>
+                    <m:mi>T</m:mi>
+                    <m:mo>-</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                </m:munderover>
+                <m:msup>
+                  <m:mfenced separators="" open="∥" close="∥">
+                    <m:msubsup>
+                      <m:mi>s</m:mi>
+                      <m:mrow>
+                        <m:mi>t</m:mi>
+                        <m:mo>+</m:mo>
+                        <m:mn>1</m:mn>
+                      </m:mrow>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>i</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                    </m:msubsup>
+                    <m:mo>-</m:mo>
+                    <m:mfenced separators="" open="(" close=")">
+                      <m:mi>A</m:mi>
+                      <m:msubsup>
+                        <m:mi>s</m:mi>
+                        <m:mi>t</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                      <m:mo>+</m:mo>
+                      <m:mi>B</m:mi>
+                      <m:msubsup>
+                        <m:mi>a</m:mi>
+                        <m:mi>t</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:mi>i</m:mi>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                      </m:msubsup>
+                    </m:mfenced>
+                  </m:mfenced>
+                  <m:mn>2</m:mn>
+                </m:msup>
+                <m:mo>.</m:mo>
+              </m:mrow>
+            </m:math>
+          </equation>
+          <para id="id68935">(This corresponds to the maximum likelihood estimate of the parameters.)</para>
+          <para id="id68941">Having learned <m:math overflow="scroll"><m:mi>A</m:mi></m:math> and <m:math overflow="scroll"><m:mi>B</m:mi></m:math>, one option is to build a <emphasis effect="bold">deterministic</emphasis> model, in which given
+an input <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:math>, the output <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> is exactly determined. Specifically, we always
+compute <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> according to Equation <link target-id="uid35"/>.
+Alternatively, we may also build a <emphasis effect="bold">stochastic</emphasis> model, in which <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> is a random function
+of the inputs, by modelling it as</para>
+          <equation id="id69067">
+            <m:math overflow="scroll" mode="display">
+              <m:mrow>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mrow>
+                    <m:mi>t</m:mi>
+                    <m:mo>+</m:mo>
+                    <m:mn>1</m:mn>
+                  </m:mrow>
+                </m:msub>
+                <m:mo>=</m:mo>
+                <m:mi>A</m:mi>
+                <m:msub>
+                  <m:mi>s</m:mi>
+                  <m:mi>t</m:mi>
+                </m:msub>
+                <m:mo>+</m:mo>
+                <m:mi>B</m:mi>
+                <m:msub>
+                  <m:mi>a</m:mi>
+                  <m:mi>t</m:mi>
+                </m:msub>
+                <m:mo>+</m:mo>
+                <m:msub>
+                  <m:mi>ϵ</m:mi>
+                  <m:mi>t</m:mi>
+                </m:msub>
+                <m:mo>,</m:mo>
+              </m:mrow>
+            </m:math>
+          </equation>
+          <para id="id69124">where here <m:math overflow="scroll"><m:msub><m:mi>ϵ</m:mi><m:mi>t</m:mi></m:msub></m:math> is a noise term, usually modeled as <m:math overflow="scroll"><m:mrow><m:msub><m:mi>ϵ</m:mi><m:mi>t</m:mi></m:msub><m:mo>∼</m:mo><m:mi mathvariant="script">N</m:mi><m:mrow><m:mo>(</m:mo><m:mn>0</m:mn><m:mo>,</m:mo><m:mi>Σ</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+(The covariance matrix <m:math overflow="scroll"><m:mi>Σ</m:mi></m:math> can also be estimated from data in a straightforward way.)</para>
+          <para id="id69189">Here, we've written the next-state <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> as a linear function of the current state
+and action; but of course, non-linear functions are also possible.
+Specifically, one can learn
+a model <m:math overflow="scroll"><m:mrow><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub><m:mo>=</m:mo><m:mi>A</m:mi><m:msub><m:mi>φ</m:mi><m:mi>s</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>B</m:mi><m:msub><m:mi>φ</m:mi><m:mi>a</m:mi></m:msub><m:mrow><m:mo>(</m:mo><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, where
+<m:math overflow="scroll"><m:msub><m:mi>φ</m:mi><m:mi>s</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>φ</m:mi><m:mi>a</m:mi></m:msub></m:math> are some non-linear feature mappings of the states and
+actions. Alternatively, one can also use non-linear learning algorithms, such as locally weighted linear
+regression, to learn to estimate <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub></m:math> as a function of <m:math overflow="scroll"><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub></m:math> and <m:math overflow="scroll"><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:math>.
+These approaches can also be used to build either deterministic or stochastic simulators
+of an MDP.</para>
+        </section>
+        <section id="uid36">
+          <title>Fitted value iteration</title>
+          <para id="id69372">We now describe the <emphasis effect="bold">fitted value iteration</emphasis> algorithm for approximating
+the value function of a continuous state MDP. In the sequel, we will assume
+that the problem has a continuous state space <m:math overflow="scroll"><m:mrow><m:mi>S</m:mi><m:mo>=</m:mo><m:msup><m:mrow><m:mi mathvariant="double-struck">R</m:mi></m:mrow><m:mi>n</m:mi></m:msup></m:mrow></m:math>, but that the action
+space <m:math overflow="scroll"><m:mi>A</m:mi></m:math> is small and discrete.<footnote id="uid37">In practice, most MDPs have much
+smaller action spaces than state spaces. E.g., a car has a 6d state space, and a
+2d action space (steering and velocity controls); the inverted pendulum has a
+4d state space, and a 1d action space; a helicopter has a 12d state space, and a
+4d action space. So, discretizing ths set of actions is usually less of a
+problem than discretizing the state space would have been.</footnote></para>
+          <para id="id69426">Recall that in value iteration, we would like to perform the update</para>
+          <equation id="uid38">
+            <m:math overflow="scroll" mode="display">
+              <m:mtable displaystyle="true">
+                <m:mtr>
+                  <m:mtd columnalign="right">
+                    <m:mrow>
+                      <m:mi>V</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:mi>s</m:mi>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mrow>
+                      <m:mo>:</m:mo>
+                      <m:mo>=</m:mo>
+                    </m:mrow>
+                  </m:mtd>
+                  <m:mtd columnalign="left">
+                    <m:mrow>
+                      <m:mi>R</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>s</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mi>γ</m:mi>
+                      <m:munder>
+                        <m:mo movablelimits="true" form="prefix">max</m:mo>
+                        <m:mi>a</m:mi>
+                      </m:munder>
+                      <m:msub>
+                        <m:mo>∫</m:mo>
+                        <m:msup>
+                          <m:mi>s</m:mi>
+                          <m:mo>'</m:mo>
+                        </m:msup>
+                      </m:msub>
+                      <m:msub>
+                        <m:mi>P</m:mi>
+                        <m:mrow>
+                          <m:mi>s</m:mi>
+                          <m:mi>a</m:mi>
+                        </m:mrow>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>s</m:mi>
+                          <m:mo>'</m:mo>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>V</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:msup>
+                          <m:mi>s</m:mi>
+                          <m:mo>'</m:mo>
+                        </m:msup>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mi>d</m:mi>
+                      <m:msup>
+                        <m:mi>s</m:mi>
+                        <m:mo>'</m:mo>
+                      </m:msup>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd/>
+                  <m:mtd>
+                    <m:mo>=</m:mo>
+                  </m:mtd>
+                  <m:mtd columnalign="left">
+                    <m:mrow>
+                      <m:mi>R</m:mi>
+                      <m:mrow>
+                        <m:mo>(</m:mo>
+                        <m:mi>s</m:mi>
+                        <m:mo>)</m:mo>
+                      </m:mrow>
+                      <m:mo>+</m:mo>
+                      <m:mi>γ</m:mi>
+                      <m:munder>
+                        <m:mo movablelimits="true" form="prefix">max</m:mo>
+                        <m:mi>a</m:mi>
+                      </m:munder>
+                      <m:msub>
+                        <m:mi mathvariant="normal">E</m:mi>
+                        <m:mrow>
+                          <m:msup>
+                            <m:mi>s</m:mi>
+                            <m:mo>'</m:mo>
+                          </m:msup>
+                          <m:mo>∼</m:mo>
+                          <m:msub>
+                            <m:mi>P</m:mi>
+                            <m:mrow>
+                              <m:mi>s</m:mi>
+                              <m:mi>a</m:mi>
+                            </m:mrow>
+                          </m:msub>
+                        </m:mrow>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>[</m:mo>
+                        <m:mi>V</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msup>
+                            <m:mi>s</m:mi>
+                            <m:mo>'</m:mo>
+                          </m:msup>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                        <m:mo>]</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:math>
+          </equation>
+          <para id="id69645">(In <link target-id="cid3">"Value iteration and policy iteration"</link>, we had written the value iteration update
+with a summation <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>:</m:mo><m:mo>=</m:mo><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>γ</m:mi><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mi>a</m:mi></m:msub><m:msub><m:mo>∑</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup></m:msub><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>
+rather than an integral over states; the new notation reflects that we are now working
+in continuous states rather than discrete states.)</para>
+          <para id="id69757">The main idea of fitted value iteration
+is that we are going to approximately carry out this step, over a finite sample
+of states <m:math overflow="scroll"><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>m</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>. Specifically, we will use a supervised learning
+algorithm—linear regression in our description below—to approximate the value function
+as a linear or non-linear function of the states:</para>
+          <equation id="id69805">
+            <m:math overflow="scroll" mode="display">
+              <m:mrow>
+                <m:mi>V</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>s</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mo>=</m:mo>
+                <m:msup>
+                  <m:mi>θ</m:mi>
+                  <m:mi>T</m:mi>
+                </m:msup>
+                <m:mi>φ</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>s</m:mi>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mo>.</m:mo>
+              </m:mrow>
+            </m:math>
+          </equation>
+          <para id="id69846">Here, <m:math overflow="scroll"><m:mi>φ</m:mi></m:math> is some appropriate
+feature mapping of the states.</para>
+          <para id="id69861">For each state <m:math overflow="scroll"><m:mi>s</m:mi></m:math> in our finite sample of <m:math overflow="scroll"><m:mi>m</m:mi></m:math> states, fitted value iteration
+will first compute a quantity <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>, which will be our approximation
+to <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>γ</m:mi><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mi>a</m:mi></m:msub><m:msub><m:mi mathvariant="normal">E</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:msub><m:mrow><m:mo>[</m:mo><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mo>]</m:mo></m:mrow></m:mrow></m:math> (the right hand side of
+Equation <link target-id="uid38"/>). Then, it will apply a supervised
+learning algorithm to try to get <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math> close to <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>γ</m:mi><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mi>a</m:mi></m:msub><m:msub><m:mi mathvariant="normal">E</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:msub><m:mrow><m:mo>[</m:mo><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mo>]</m:mo></m:mrow></m:mrow></m:math>
+(or, in other words, to try to get <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>(</m:mo><m:mi>s</m:mi><m:mo>)</m:mo></m:mrow></m:math> close to <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>).</para>
+          <para id="id70128">In detail, the algorithm is as follows:</para>
+          <list id="id70132" display="block" list-type="enumerated">
+            <item id="uid39">Randomly sample <m:math overflow="scroll"><m:mi>m</m:mi></m:math> states <m:math overflow="scroll"><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mn>2</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:mo>...</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>m</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>∈</m:mo><m:mi>S</m:mi></m:mrow></m:math>.
+</item>
+            <item id="uid40">Initialize <m:math overflow="scroll"><m:mrow><m:mi>θ</m:mi><m:mo>:</m:mo><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math>.
+</item>
+            <item id="uid41">Repeat <m:math overflow="scroll"><m:mo>{</m:mo></m:math></item>
+            <item id="uid42">
+              <label/>
+              <list id="id70269" display="block" list-type="enumerated">
+                <item id="uid43"><label/>For <m:math overflow="scroll"><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mi>m</m:mi></m:mrow></m:math><m:math overflow="scroll"><m:mo>{</m:mo></m:math><list id="id70316" display="block" list-type="enumerated"><item id="uid44"><label/>For each action <m:math overflow="scroll"><m:mrow><m:mi>a</m:mi><m:mo>∈</m:mo><m:mi>A</m:mi></m:mrow></m:math><m:math overflow="scroll"><m:mo>{</m:mo></m:math></item><item id="uid45"><label/><list id="id70363" display="block" list-type="enumerated"><item id="uid46"><label/>Sample <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>s</m:mi><m:mn>1</m:mn><m:mo>'</m:mo></m:msubsup><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msubsup><m:mi>s</m:mi><m:mi>k</m:mi><m:mo>'</m:mo></m:msubsup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:math> (using a model of the MDP).
+</item><item id="uid47"><label/>Set <m:math overflow="scroll"><m:mrow><m:mi>q</m:mi><m:mrow><m:mo>(</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mfrac><m:mn>1</m:mn><m:mi>k</m:mi></m:mfrac><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>j</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>k</m:mi></m:msubsup><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>γ</m:mi><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msubsup><m:mi>s</m:mi><m:mi>j</m:mi><m:mo>'</m:mo></m:msubsup><m:mo>)</m:mo></m:mrow></m:mrow></m:math></item><item id="uid48"><label/><m:math overflow="scroll"><m:mrow><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mo>/</m:mo><m:mo>/</m:mo></m:mrow></m:math> Hence, <m:math overflow="scroll"><m:mrow><m:mi>q</m:mi><m:mo>(</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow></m:math> is an estimate of <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>γ</m:mi><m:msub><m:mi mathvariant="normal">E</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:msub><m:mrow><m:mo>[</m:mo><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mo>]</m:mo></m:mrow></m:mrow></m:math>.
+</item></list></item><item id="uid49"><label/><m:math overflow="scroll"><m:mo>}</m:mo></m:math></item><item id="uid50"><label/>Set <m:math overflow="scroll"><m:mrow><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>=</m:mo><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mi>a</m:mi></m:msub><m:mi>q</m:mi><m:mrow><m:mo>(</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow></m:mrow></m:math>.
+</item><item id="uid51"><label/><m:math overflow="scroll"><m:mrow><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mspace width="0.277778em"/><m:mo>/</m:mo><m:mo>/</m:mo></m:mrow></m:math> Hence, <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math> is an estimate of <m:math overflow="scroll"><m:mrow><m:mi>R</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:mi>γ</m:mi><m:msub><m:mo movablelimits="true" form="prefix">max</m:mo><m:mi>a</m:mi></m:msub><m:msub><m:mi mathvariant="normal">E</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:msub><m:mrow><m:mo>[</m:mo><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>)</m:mo></m:mrow><m:mo>]</m:mo></m:mrow></m:mrow></m:math>.
+</item></list></item>
+                <item id="uid52">
+                  <label/>
+                  <m:math overflow="scroll">
+                    <m:mo>}</m:mo>
+                  </m:math>
+                </item>
+                <item id="uid53"><label/><m:math overflow="scroll"><m:mrow><m:mo>/</m:mo><m:mo>/</m:mo></m:mrow></m:math> In the original value iteration algorithm (over discrete states)
+</item>
+                <item id="uid54"><label/><m:math overflow="scroll"><m:mrow><m:mo>/</m:mo><m:mo>/</m:mo></m:mrow></m:math> we updated the value function according to <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>:</m:mo><m:mo>=</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>.
+</item>
+                <item id="uid55"><label/><m:math overflow="scroll"><m:mrow><m:mo>/</m:mo><m:mo>/</m:mo></m:mrow></m:math> In this algorithm, we want <m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>≈</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mrow></m:math>, which we'll achieve
+</item>
+                <item id="uid56"><label/><m:math overflow="scroll"><m:mrow><m:mo>/</m:mo><m:mo>/</m:mo></m:mrow></m:math> using supervised learning (linear regression).
+</item>
+                <item id="uid57"><label/>Set <m:math overflow="scroll"><m:mrow><m:mi>θ</m:mi><m:mo>:</m:mo><m:mo>=</m:mo><m:mo form="prefix">arg</m:mo><m:msub><m:mo movablelimits="true" form="prefix">min</m:mo><m:mi>θ</m:mi></m:msub><m:mfrac><m:mn>1</m:mn><m:mn>2</m:mn></m:mfrac><m:msubsup><m:mo>∑</m:mo><m:mrow><m:mi>i</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow><m:mi>m</m:mi></m:msubsup><m:msup><m:mfenced separators="" open="(" close=")"><m:msup><m:mi>θ</m:mi><m:mi>T</m:mi></m:msup><m:mi>φ</m:mi><m:mrow><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>-</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:mfenced><m:mn>2</m:mn></m:msup></m:mrow></m:math></item>
+              </list>
+            </item>
+            <item id="uid58">
+              <label/>
+              <m:math overflow="scroll">
+                <m:mo>}</m:mo>
+              </m:math>
+            </item>
+          </list>
+          <para id="id71290">Above, we had written out fitted value iteration using linear regression as the algorithm to try to make
+<m:math overflow="scroll"><m:mrow><m:mi>V</m:mi><m:mo>(</m:mo><m:msup><m:mi>s</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:math> close to <m:math overflow="scroll"><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>i</m:mi><m:mo>)</m:mo></m:mrow></m:msup></m:math>. That step of the algorithm is completely analogous to a standard
+supervised learning (regression) problem in which we have a training set
+<m:math overflow="scroll"><m:mrow><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mn>1</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>,</m:mo><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mn>2</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mn>2</m:mn><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:mrow><m:mo>(</m:mo><m:msup><m:mi>x</m:mi><m:mrow><m:mo>(</m:mo><m:mi>m</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>,</m:mo><m:msup><m:mi>y</m:mi><m:mrow><m:mo>(</m:mo><m:mi>m</m:mi><m:mo>)</m:mo></m:mrow></m:msup><m:mo>)</m:mo></m:mrow></m:mrow></m:math>, and want to learn
+a function mapping from <m:math overflow="scroll"><m:mi>x</m:mi></m:math> to <m:math overflow="scroll"><m:mi>y</m:mi></m:math>; the only difference is that here <m:math overflow="scroll"><m:mi>s</m:mi></m:math> plays the role of <m:math overflow="scroll"><m:mi>x</m:mi></m:math>.
+Even
+though our description above used linear regression, clearly other regression algorithms
+(such as locally weighted linear regression) can also be used.</para>
+          <para id="id71494">Unlike value iteration over a discrete set of states, fitted value iteration cannot be proved to always to converge.
+However, in practice, it often does converge (or approximately converge), and works well for many problems.
+Note also that if we are using a deterministic simulator/model of the MDP, then fitted value iteration can be
+simplified by setting <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math> in the algorithm.
+This is because the expectation in Equation <link target-id="uid38"/> becomes an expectation over
+a deterministic distribution, and so a single example is sufficient to exactly compute that expectation.
+Otherwise, in the algorithm above, we had to draw <m:math overflow="scroll"><m:mi>k</m:mi></m:math> samples, and average to try to approximate that
+expectation (see the definition of <m:math overflow="scroll"><m:mrow><m:mi>q</m:mi><m:mo>(</m:mo><m:mi>a</m:mi><m:mo>)</m:mo></m:mrow></m:math>, in the algorithm pseudo-code).</para>
+          <para id="id71547">Finally, fitted value iteration outputs <m:math overflow="scroll"><m:mi>V</m:mi></m:math>, which is an approximation to <m:math overflow="scroll"><m:msup><m:mi>V</m:mi><m:mo>*</m:mo></m:msup></m:math>. This implicitly defines
+our policy. Specifically,
+when our system is in some state <m:math overflow="scroll"><m:mi>s</m:mi></m:math>, and we need to choose an action, we would like to choose the action</para>
+          <equation id="uid59">
+            <m:math overflow="scroll" mode="display">
+              <m:mrow>
+                <m:mo form="prefix">arg</m:mo>
+                <m:munder>
+                  <m:mo movablelimits="true" form="prefix">max</m:mo>
+                  <m:mi>a</m:mi>
+                </m:munder>
+                <m:msub>
+                  <m:mi mathvariant="normal">E</m:mi>
+                  <m:mrow>
+                    <m:msup>
+                      <m:mi>s</m:mi>
+                      <m:mo>'</m:mo>
+                    </m:msup>
+                    <m:mo>∼</m:mo>
+                    <m:msub>
+                      <m:mi>P</m:mi>
+                      <m:mrow>
+                        <m:mi>s</m:mi>
+                        <m:mi>a</m:mi>
+                      </m:mrow>
+                    </m:msub>
+                  </m:mrow>
+                </m:msub>
+                <m:mrow>
+                  <m:mo>[</m:mo>
+                  <m:mi>V</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:msup>
+                      <m:mi>s</m:mi>
+                      <m:mo>'</m:mo>
+                    </m:msup>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>]</m:mo>
+                </m:mrow>
+              </m:mrow>
+            </m:math>
+          </equation>
+          <para id="id71663">The process for computing/approximating this is similar to the inner-loop of fitted value iteration, where
+for each action, we sample <m:math overflow="scroll"><m:mrow><m:msubsup><m:mi>s</m:mi><m:mn>1</m:mn><m:mo>'</m:mo></m:msubsup><m:mo>,</m:mo><m:mo>...</m:mo><m:mo>,</m:mo><m:msubsup><m:mi>s</m:mi><m:mi>k</m:mi><m:mo>'</m:mo></m:msubsup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:math> to approximate the expectation. (And again,
+if the simulator is deterministic, we can set <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>.)</para>
+          <para id="id71734">In practice, there're often other ways to approximate this step as well. For example, one very common
+case is if the
+simulator is of the form <m:math overflow="scroll"><m:mrow><m:msub><m:mi>s</m:mi><m:mrow><m:mi>t</m:mi><m:mo>+</m:mo><m:mn>1</m:mn></m:mrow></m:msub><m:mo>=</m:mo><m:mi>f</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub><m:mo>,</m:mo><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub><m:mo>)</m:mo></m:mrow><m:mo>+</m:mo><m:msub><m:mi>ϵ</m:mi><m:mi>t</m:mi></m:msub></m:mrow></m:math>, where <m:math overflow="scroll"><m:mi>f</m:mi></m:math> is some determinstic function
+of the states (such as <m:math overflow="scroll"><m:mrow><m:mi>f</m:mi><m:mrow><m:mo>(</m:mo><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub><m:mo>,</m:mo><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub><m:mo>)</m:mo></m:mrow><m:mo>=</m:mo><m:mi>A</m:mi><m:msub><m:mi>s</m:mi><m:mi>t</m:mi></m:msub><m:mo>+</m:mo><m:mi>B</m:mi><m:msub><m:mi>a</m:mi><m:mi>t</m:mi></m:msub></m:mrow></m:math>), and <m:math overflow="scroll"><m:mi>ϵ</m:mi></m:math> is zero-mean Gaussian noise. In this case,
+we can pick the action given by</para>
+          <equation id="id71870">
+            <m:math overflow="scroll" mode="display">
+              <m:mrow>
+                <m:mo form="prefix">arg</m:mo>
+                <m:munder>
+                  <m:mo movablelimits="true" form="prefix">max</m:mo>
+                  <m:mi>a</m:mi>
+                </m:munder>
+                <m:mi>V</m:mi>
+                <m:mrow>
+                  <m:mo>(</m:mo>
+                  <m:mi>f</m:mi>
+                  <m:mrow>
+                    <m:mo>(</m:mo>
+                    <m:mi>s</m:mi>
+                    <m:mo>,</m:mo>
+                    <m:mi>a</m:mi>
+                    <m:mo>)</m:mo>
+                  </m:mrow>
+                  <m:mo>)</m:mo>
+                </m:mrow>
+                <m:mo>.</m:mo>
+              </m:mrow>
+            </m:math>
+          </equation>
+          <para id="id71919">In other words, here we are just setting <m:math overflow="scroll"><m:mrow><m:msub><m:mi>ϵ</m:mi><m:mi>t</m:mi></m:msub><m:mo>=</m:mo><m:mn>0</m:mn></m:mrow></m:math> (i.e., ignoring the noise in the simulator),
+and setting <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>=</m:mo><m:mn>1</m:mn></m:mrow></m:math>. Equivalently, this can be derived from Equation <link target-id="uid59"/> using
+the approximation</para>
+          <equation id="uid60">
+            <m:math overflow="scroll" mode="display">
+              <m:mtable displaystyle="true">
+                <m:mtr>
+                  <m:mtd columnalign="right">
+                    <m:mrow>
+                      <m:msub>
+                        <m:mi mathvariant="normal">E</m:mi>
+                        <m:msup>
+                          <m:mi>s</m:mi>
+                          <m:mo>'</m:mo>
+                        </m:msup>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>[</m:mo>
+                        <m:mi>V</m:mi>
+                        <m:mrow>
+                          <m:mo>(</m:mo>
+                          <m:msup>
+                            <m:mi>s</m:mi>
+                            <m:mo>'</m:mo>
+                          </m:msup>
+                          <m:mo>)</m:mo>
+                        </m:mrow>
+                        <m:mo>]</m:mo>
+                      </m:mrow>
+                    </m:mrow>
+                  </m:mtd>
+                  <m:mtd>
+                    <m:mo>≈</m:mo>
+                  </m:mtd>
+                  <m:mtd columnalign="left">
+                    <m:mrow>
+                      <m:mi>V</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:msub>
+                        <m:mi mathvariant="normal">E</m:mi>
+                        <m:msup>
+                          <m:mi>s</m:mi>
+                          <m:mo>'</m:mo>
+                        </m:msup>
+                      </m:msub>
+                      <m:mrow>
+                        <m:mo>[</m:mo>
+                        <m:msup>
+                          <m:mi>s</m:mi>
+                          <m:mo>'</m:mo>
+                        </m:msup>
+                        <m:mo>]</m:mo>
+                      </m:mrow>
+                      <m:mo>)</m:mo>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+                <m:mtr>
+                  <m:mtd/>
+                  <m:mtd>
+                    <m:mo>=</m:mo>
+                  </m:mtd>
+                  <m:mtd columnalign="left">
+                    <m:mrow>
+                      <m:mi>V</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:mi>f</m:mi>
+                      <m:mo>(</m:mo>
+                      <m:mi>s</m:mi>
+                      <m:mo>,</m:mo>
+                      <m:mi>a</m:mi>
+                      <m:mo>)</m:mo>
+                      <m:mo>)</m:mo>
+                      <m:mo>,</m:mo>
+                    </m:mrow>
+                  </m:mtd>
+                </m:mtr>
+              </m:mtable>
+            </m:math>
+          </equation>
+          <para id="id72096">where here the expection is over the random <m:math overflow="scroll"><m:mrow><m:msup><m:mi>s</m:mi><m:mo>'</m:mo></m:msup><m:mo>∼</m:mo><m:msub><m:mi>P</m:mi><m:mrow><m:mi>s</m:mi><m:mi>a</m:mi></m:mrow></m:msub></m:mrow></m:math>.
+So long as the noise terms <m:math overflow="scroll"><m:msub><m:mi>ϵ</m:mi><m:mi>t</m:mi></m:msub></m:math> are small, this will usually
+be a reasonable approximation.</para>
+          <para id="id72147">However, for problems that don't lend themselves
+to such approximations, having to sample <m:math overflow="scroll"><m:mrow><m:mi>k</m:mi><m:mo>|</m:mo><m:mi>A</m:mi><m:mo>|</m:mo></m:mrow></m:math> states using the model, in order
+to approximate the expectation above, can be computationally expensive.</para>
+        </section>
+      </section>
+    </section>
+  </content>
+</document>

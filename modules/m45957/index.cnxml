@@ -1,0 +1,42 @@
+<document xmlns="http://cnx.rice.edu/cnxml">
+
+<title>Machine Learning Problem Sets and Solutions</title>
+<metadata xmlns:md="http://cnx.rice.edu/mdml">
+  <md:content-id>m45957</md:content-id>
+  <md:title>Machine Learning Problem Sets and Solutions</md:title>
+  <md:abstract/>
+  <md:uuid>fbbc3673-0924-443e-b358-bca0f96cbe0b</md:uuid>
+</metadata>
+
+<content>
+  <para id="delete_me">In this module you can find files for the problem sets, the solution sets, and the corresponding data.</para><table id="eip-855" summary="Links to homework sets and corresponding data.">
+<tgroup cols="4"><tbody>
+  <row>
+    <entry><link url="problemset1.pdf">Problem Set 1</link></entry>
+    <entry><link url="problemset1-data.zip">PS1 Data</link></entry>
+    <entry><link url="ps1_solution.pdf">PS1 Solution</link></entry>
+    <entry><link url="ps1_solution-data.zip">PS1 Solution Data</link></entry>
+  </row>
+  <row>
+    <entry><link url="problemset2.pdf">Problem Set 2</link></entry>
+    <entry><link url="problemset2-data.zip">PS2 Data</link></entry>
+    <entry><link url="ps2_solution.pdf">PS2 Solution</link></entry>
+    <entry>none</entry>
+  </row>
+  <row>
+    <entry><link url="problemset3.pdf">Problem Set 3</link></entry>
+    <entry><link url="problemset3-data.zip">PS3 Data</link></entry>
+    <entry><link url="ps3_solution.pdf">PS3 Solution</link></entry>
+    <entry><link url="ps3_solution-data.zip">PS3 Solution Data</link></entry>
+  </row>
+  <row>
+    <entry><link url="problemset4.pdf">Problem Set 4</link></entry>
+    <entry><link url="problemset4-data.zip">PS4 Data</link></entry>
+    <entry><link url="ps4_solution.pdf">PS4 Solution</link></entry>
+    <entry><link url="ps4_solution-data.zip">PS4 Solution Data</link></entry>
+  </row>
+</tbody>
+</tgroup>
+</table><para id="eip-369"><link url="practice_midterm.pdf">Practice midterm</link></para></content>
+
+</document>
